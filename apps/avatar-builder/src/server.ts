@@ -20,6 +20,8 @@ interface IterationRequest {
   persona: string;
   iterationNumber: number;
   totalIterations: number;
+  enableThinking: boolean;
+  temperature: number;
   previousImage?: string; // base64 encoded
   previousCode?: string; // the code from the last iteration
 }
@@ -55,7 +57,7 @@ async function createMessageWithRetry(params: any, maxRetries = 3): Promise<any>
 
 app.post('/api/iterate', async (req, res) => {
   try {
-    const { persona, iterationNumber, totalIterations, previousImage, previousCode }: IterationRequest = req.body;
+    const { persona, iterationNumber, totalIterations, enableThinking, temperature, previousImage, previousCode }: IterationRequest = req.body;
 
     let userMessage = '';
     
@@ -122,16 +124,23 @@ Respond with ONLY the JavaScript code, no explanations, no markdown code blocks 
       });
     }
 
-    const response = await createMessageWithRetry({
+    const requestParams: any = {
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
-      thinking: {
-        type: 'enabled',
-        budget_tokens: 2000,
-      },
+      temperature: temperature ?? 1.0,
       system: persona,
       messages,
-    });
+    };
+
+    // Only add thinking if enabled
+    if (enableThinking) {
+      requestParams.thinking = {
+        type: 'enabled',
+        budget_tokens: 2000,
+      };
+    }
+
+    const response = await createMessageWithRetry(requestParams);
 
     // Extract thinking and code from response
     let thinking = '';

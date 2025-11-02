@@ -75,6 +75,42 @@
       font-family: inherit;
     }
 
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: #333;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #00ff88;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #00ff88;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
     button {
       background: #00ff88;
       color: #0a0a0a;
@@ -108,6 +144,8 @@
       background: #1a1a1a;
       padding: 20px;
       border-radius: 8px;
+      min-width: 0;
+      overflow: hidden;
     }
 
     .panel h2 {
@@ -133,7 +171,8 @@
       overflow-x: auto;
       overflow-y: hidden;
       white-space: nowrap;
-      max-width: 100%;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .film-reel-title {
@@ -141,6 +180,10 @@
       color: #888;
       margin-bottom: 8px;
       white-space: normal;
+    }
+
+    .film-reel > div {
+      display: inline-block;
     }
 
     .film-frame {
@@ -312,6 +355,24 @@
         <input type="number" id="iterations" value="5" min="1" max="20">
       </div>
 
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="enableThinking" checked>
+          Enable extended thinking (2000 tokens)
+        </label>
+        <div style="font-size: 0.8em; color: #666; margin-top: 5px;">
+          When enabled, Claude thinks through design decisions (temp locked to 1.0)
+        </div>
+      </div>
+
+      <div class="control-group" id="tempControl">
+        <label for="temperature">Temperature (creativity): <span id="tempValue">0.7</span></label>
+        <input type="range" id="temperature" value="0.7" min="0" max="1" step="0.1" style="width: 200px;">
+        <div style="font-size: 0.8em; color: #666; margin-top: 5px;">
+          Lower = more focused, Higher = more creative
+        </div>
+      </div>
+
       <button id="startBtn">Start Avatar Creation</button>
       <span id="status" class="status idle">Idle</span>
     </div>
@@ -325,7 +386,7 @@
         </div>
         <div class="film-reel">
           <div class="film-reel-title">📽️ Progression:</div>
-          <div id="filmReel"></div>
+          <div id="filmReelContainer"></div>
         </div>
       </div>
 
@@ -353,17 +414,32 @@
     const statusEl = document.getElementById('status');
     const personaInput = document.getElementById('persona');
     const iterationsInput = document.getElementById('iterations');
+    const enableThinkingInput = document.getElementById('enableThinking');
+    const tempControlEl = document.getElementById('tempControl');
+    const temperatureInput = document.getElementById('temperature');
+    const tempValueEl = document.getElementById('tempValue');
     const codeDisplay = document.getElementById('codeDisplay');
     const thinkingDisplay = document.getElementById('thinkingDisplay');
     const logEl = document.getElementById('log');
     const currentIterationEl = document.getElementById('currentIteration');
     const totalIterationsEl = document.getElementById('totalIterations');
-    const filmReelEl = document.getElementById('filmReel');
+    const filmReelEl = document.getElementById('filmReelContainer');
 
     let isRunning = false;
     let lastCode = '';
     let lastThinking = '';
     let filmFrames = []; // Array of {iteration, imageData, code, thinking}
+
+    // Update temperature display
+    temperatureInput.addEventListener('input', (e) => {
+      tempValueEl.textContent = e.target.value;
+    });
+
+    // Toggle temperature control based on thinking checkbox
+    enableThinkingInput.addEventListener('change', (e) => {
+      tempControlEl.style.opacity = e.target.checked ? '0.5' : '1';
+      tempControlEl.style.pointerEvents = e.target.checked ? 'none' : 'auto';
+    });
 
     function log(message, isError = false) {
       const entry = document.createElement('div');
@@ -492,6 +568,8 @@
             persona: personaInput.value,
             iterationNumber,
             totalIterations,
+            enableThinking: enableThinkingInput.checked,
+            temperature: enableThinkingInput.checked ? 1.0 : parseFloat(temperatureInput.value),
             previousImage,
             previousCode,
           }),
