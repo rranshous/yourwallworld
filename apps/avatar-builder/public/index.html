@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avatar Builder - Claude's Self-Portrait</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'SF Mono', 'Consolas', monospace;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 0.5em;
+      color: #00ff88;
+    }
+
+    .subtitle {
+      color: #888;
+      margin-bottom: 2em;
+    }
+
+    .controls {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #aaa;
+      font-size: 0.9em;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 10px;
+      background: #0a0a0a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 0.9em;
+      resize: vertical;
+    }
+
+    input[type="number"] {
+      width: 100px;
+      padding: 8px;
+      background: #0a0a0a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-family: inherit;
+    }
+
+    button {
+      background: #00ff88;
+      color: #0a0a0a;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background 0.2s;
+    }
+
+    button:hover:not(:disabled) {
+      background: #00dd77;
+    }
+
+    button:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .panel {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+    }
+
+    .panel h2 {
+      color: #00ff88;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+
+    #canvas {
+      border: 2px solid #333;
+      border-radius: 4px;
+      display: block;
+      width: 100%;
+      height: auto;
+      background: white;
+    }
+
+    .iteration-info {
+      margin-top: 10px;
+      padding: 10px;
+      background: #0a0a0a;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    .iteration-info span {
+      color: #00ff88;
+      font-weight: bold;
+    }
+
+    .code-display {
+      background: #0a0a0a;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 0.85em;
+      border: 1px solid #333;
+    }
+
+    .code-display pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      color: #e0e0e0;
+    }
+
+    .log {
+      background: #0a0a0a;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.85em;
+      border: 1px solid #333;
+      margin-top: 10px;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 5px;
+      border-left: 3px solid #00ff88;
+      padding-left: 10px;
+    }
+
+    .log-entry.error {
+      border-left-color: #ff4444;
+      color: #ff8888;
+    }
+
+    .log-entry .timestamp {
+      color: #666;
+      font-size: 0.85em;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      margin-left: 10px;
+    }
+
+    .status.idle {
+      background: #333;
+      color: #888;
+    }
+
+    .status.running {
+      background: #00ff8844;
+      color: #00ff88;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    @media (max-width: 900px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 Avatar Builder</h1>
+    <p class="subtitle">An experiment in iterative self-representation</p>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="persona">Persona / Context for Claude:</label>
+        <textarea id="persona" rows="4">You are Claude, an AI assistant created by Anthropic. You are thoughtful, creative, and curious. You value clarity, helpfulness, and honest expression. You are participating in an experiment where you get to design your own visual avatar.</textarea>
+      </div>
+
+      <div class="control-group">
+        <label for="iterations">Number of iterations:</label>
+        <input type="number" id="iterations" value="5" min="1" max="20">
+      </div>
+
+      <button id="startBtn">Start Avatar Creation</button>
+      <span id="status" class="status idle">Idle</span>
+    </div>
+
+    <div class="workspace">
+      <div class="panel">
+        <h2>Canvas</h2>
+        <canvas id="canvas" width="512" height="512"></canvas>
+        <div class="iteration-info">
+          Iteration: <span id="currentIteration">0</span> / <span id="totalIterations">0</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Generated Code</h2>
+        <div class="code-display">
+          <pre id="codeDisplay">No code generated yet...</pre>
+        </div>
+
+        <h2 style="margin-top: 20px;">Log</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const statusEl = document.getElementById('status');
+    const personaInput = document.getElementById('persona');
+    const iterationsInput = document.getElementById('iterations');
+    const codeDisplay = document.getElementById('codeDisplay');
+    const logEl = document.getElementById('log');
+    const currentIterationEl = document.getElementById('currentIteration');
+    const totalIterationsEl = document.getElementById('totalIterations');
+
+    let conversationHistory = [];
+    let isRunning = false;
+
+    function log(message, isError = false) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry' + (isError ? ' error' : '');
+      const timestamp = new Date().toLocaleTimeString();
+      entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+      logEl.insertBefore(entry, logEl.firstChild);
+    }
+
+    function setStatus(status) {
+      statusEl.className = 'status ' + status;
+      statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    function clearCanvas() {
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function executeCode(code) {
+      try {
+        clearCanvas();
+        // Create a function to isolate the code execution
+        const fn = new Function('ctx', 'canvas', code);
+        fn(ctx, canvas);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
+    function getCanvasImage() {
+      return canvas.toDataURL('image/png').split(',')[1]; // Get base64 without prefix
+    }
+
+    async function runIteration(iterationNumber, totalIterations) {
+      try {
+        log(`Starting iteration ${iterationNumber + 1}/${totalIterations}...`);
+        currentIterationEl.textContent = iterationNumber + 1;
+
+        const previousImage = iterationNumber > 0 ? getCanvasImage() : undefined;
+
+        const response = await fetch('/api/iterate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            persona: personaInput.value,
+            iterationNumber,
+            previousImage,
+            conversationHistory,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || 'API call failed');
+        }
+
+        // Clean up the code (remove markdown if present)
+        let code = data.code;
+        code = code.replace(/```javascript\n?/g, '').replace(/```\n?/g, '').trim();
+
+        codeDisplay.textContent = code;
+
+        // Execute the code
+        const result = executeCode(code);
+        
+        if (result.success) {
+          log(`✓ Iteration ${iterationNumber + 1} complete - avatar updated`);
+          
+          // Update conversation history
+          conversationHistory.push({
+            role: 'assistant',
+            content: code,
+          });
+        } else {
+          log(`✗ Error executing code: ${result.error}`, true);
+          throw new Error(result.error);
+        }
+
+        return true;
+      } catch (error) {
+        log(`✗ Error in iteration ${iterationNumber + 1}: ${error.message}`, true);
+        return false;
+      }
+    }
+
+    async function startAvatarCreation() {
+      if (isRunning) return;
+
+      isRunning = true;
+      startBtn.disabled = true;
+      setStatus('running');
+      conversationHistory = [];
+
+      const totalIterations = parseInt(iterationsInput.value);
+      totalIterationsEl.textContent = totalIterations;
+      currentIterationEl.textContent = '0';
+
+      log(`🎨 Starting avatar creation with ${totalIterations} iterations...`);
+      clearCanvas();
+
+      for (let i = 0; i < totalIterations; i++) {
+        const success = await runIteration(i, totalIterations);
+        if (!success) {
+          log('Stopping due to error', true);
+          break;
+        }
+        
+        // Small delay between iterations to see the progression
+        if (i < totalIterations - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      log(`✓ Avatar creation complete!`);
+      isRunning = false;
+      startBtn.disabled = false;
+      setStatus('idle');
+    }
+
+    startBtn.addEventListener('click', startAvatarCreation);
+
+    // Initialize
+    clearCanvas();
+    log('Ready to begin. Configure settings and click "Start Avatar Creation".');
+  </script>
+</body>
+</html>
