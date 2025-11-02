@@ -27,7 +27,8 @@ interface IterationRequest {
   previousThinking?: string; // the thinking from the last iteration
   conversationHistory?: Array<{
     code: string;
-    thinking: string;
+    thinking?: string;
+    signature?: string; // signature from the thinking block
   }>;
 }
 
@@ -114,12 +115,12 @@ Respond with ONLY the JavaScript code (or "STOP"), no explanations, no markdown 
         const hist = conversationHistory[i];
         const content: Array<any> = [];
         
-        // Add thinking block if we have thinking and thinking mode is enabled
-        if (enableThinking && hist.thinking) {
+        // Add thinking block if we have thinking, signature, and thinking mode is enabled
+        if (enableThinking && hist.thinking && hist.signature) {
           content.push({
             type: 'thinking',
             thinking: hist.thinking,
-            signature: '',  // Empty signature for historical thinking
+            signature: hist.signature,
           });
         }
         
@@ -190,11 +191,13 @@ Respond with ONLY the JavaScript code (or "STOP"), no explanations, no markdown 
 
     // Extract thinking and code from response
     let thinking = '';
+    let signature = '';
     let code = '';
     
     for (const block of response.content) {
       if (block.type === 'thinking') {
         thinking = block.thinking;
+        signature = block.signature || '';
       } else if (block.type === 'text') {
         code = block.text;
       }
@@ -214,6 +217,7 @@ Respond with ONLY the JavaScript code (or "STOP"), no explanations, no markdown 
       success: true,
       code: shouldStop ? '' : code,
       thinking,
+      signature,
       shouldStop,
       usage: response.usage,
     });

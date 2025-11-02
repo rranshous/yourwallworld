@@ -433,8 +433,9 @@
     let shouldStopIterations = false;
     let lastCode = '';
     let lastThinking = '';
+    let lastSignature = '';
     let filmFrames = []; // Array of {iteration, imageData, code, thinking}
-    let conversationHistory = []; // Array of {code, thinking}
+    let conversationHistory = []; // Array of {code, thinking, signature}
     let currentViewIndex = -1; // Currently viewed frame index
 
     // Update temperature display
@@ -633,6 +634,7 @@
           .trim();
 
         const thinking = data.thinking || '';
+        const signature = data.signature || '';
 
         if (!code) {
           throw new Error('No code returned from API');
@@ -647,14 +649,16 @@
         if (result.success) {
           log(`✓ Iteration ${iterationNumber + 1} complete - avatar updated`);
           
-          // Save the code and thinking for the next iteration
+          // Save the code, thinking, and signature for the next iteration
           lastCode = code;
           lastThinking = thinking;
+          lastSignature = signature;
           
           // Add to conversation history
           conversationHistory.push({
             code,
             thinking,
+            signature,
           });
           
           // Add to film reel
@@ -689,6 +693,7 @@
       setStatus('running');
       lastCode = '';
       lastThinking = '';
+      lastSignature = '';
       clearFilmReel();
 
       const totalIterations = parseInt(iterationsInput.value);
