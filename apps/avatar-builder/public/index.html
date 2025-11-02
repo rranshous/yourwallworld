@@ -131,13 +131,16 @@
       background: #0a0a0a;
       border-radius: 4px;
       overflow-x: auto;
+      overflow-y: hidden;
       white-space: nowrap;
+      max-width: 100%;
     }
 
     .film-reel-title {
       font-size: 0.85em;
       color: #888;
       margin-bottom: 8px;
+      white-space: normal;
     }
 
     .film-frame {
@@ -148,6 +151,7 @@
       border: 2px solid #333;
       border-radius: 4px;
       transition: all 0.2s;
+      vertical-align: top;
     }
 
     .film-frame:hover {
@@ -166,6 +170,7 @@
       width: 80px;
       object-fit: contain;
       background: white;
+      flex-shrink: 0;
     }
 
     .film-frame-label {
@@ -176,6 +181,7 @@
       font-size: 0.7em;
       color: #666;
       white-space: nowrap;
+      pointer-events: none;
     }
 
     .film-frame.active .film-frame-label {
@@ -380,11 +386,21 @@
     function executeCode(code) {
       try {
         clearCanvas();
+        
+        // Extra cleaning just in case
+        code = code
+          .replace(/```javascript\s*/gi, '')
+          .replace(/```js\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim();
+        
         // Create a function to isolate the code execution
         const fn = new Function('ctx', 'canvas', code);
         fn(ctx, canvas);
         return { success: true };
       } catch (error) {
+        console.error('Code execution error:', error);
+        console.error('Failed code:', code);
         return { success: false, error: error.message };
       }
     }
@@ -487,11 +503,18 @@
           throw new Error(data.error || 'API call failed');
         }
 
-        // Clean up the code (remove markdown if present)
-        let code = data.code;
-        code = code.replace(/```javascript\n?/g, '').replace(/```\n?/g, '').trim();
+        // The backend already cleaned it, but do a final pass just in case
+        let code = (data.code || '')
+          .replace(/```javascript\s*/gi, '')
+          .replace(/```js\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim();
 
         const thinking = data.thinking || '';
+
+        if (!code) {
+          throw new Error('No code returned from API');
+        }
 
         codeDisplay.textContent = code;
         thinkingDisplay.textContent = thinking || 'No thinking for this iteration';

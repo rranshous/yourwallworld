@@ -145,6 +145,13 @@ Respond with ONLY the JavaScript code, no explanations, no markdown code blocks 
       }
     }
 
+    // Clean up the code - remove markdown code blocks, extra whitespace, etc.
+    code = code
+      .replace(/```javascript\s*/gi, '')  // Remove ```javascript
+      .replace(/```js\s*/gi, '')          // Remove ```js
+      .replace(/```\s*/g, '')             // Remove any remaining ```
+      .trim();                            // Remove leading/trailing whitespace
+
     res.json({
       success: true,
       code,
