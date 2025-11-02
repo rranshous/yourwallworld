@@ -374,6 +374,8 @@
       </div>
 
       <button id="startBtn">Start Avatar Creation</button>
+      <button id="stopBtn" style="display: none;">Stop</button>
+      <button id="continueBtn" style="display: none;">Continue (+5 more)</button>
       <span id="status" class="status idle">Idle</span>
     </div>
 
@@ -411,6 +413,8 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const continueBtn = document.getElementById('continueBtn');
     const statusEl = document.getElementById('status');
     const personaInput = document.getElementById('persona');
     const iterationsInput = document.getElementById('iterations');
@@ -426,9 +430,12 @@
     const filmReelEl = document.getElementById('filmReelContainer');
 
     let isRunning = false;
+    let shouldStopIterations = false;
     let lastCode = '';
     let lastThinking = '';
     let filmFrames = []; // Array of {iteration, imageData, code, thinking}
+    let conversationHistory = []; // Array of {code, thinking}
+    let currentViewIndex = -1; // Currently viewed frame index
 
     // Update temperature display
     temperatureInput.addEventListener('input', (e) => {
@@ -439,6 +446,25 @@
     enableThinkingInput.addEventListener('change', (e) => {
       tempControlEl.style.opacity = e.target.checked ? '0.5' : '1';
       tempControlEl.style.pointerEvents = e.target.checked ? 'none' : 'auto';
+    });
+
+    // Keyboard navigation for film reel
+    document.addEventListener('keydown', (e) => {
+      if (filmFrames.length === 0) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const newIndex = Math.max(0, currentViewIndex - 1);
+        if (newIndex !== currentViewIndex) {
+          loadFilmFrame(newIndex);
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const newIndex = Math.min(filmFrames.length - 1, currentViewIndex + 1);
+        if (newIndex !== currentViewIndex) {
+          loadFilmFrame(newIndex);
+        }
+      }
     });
 
     function log(message, isError = false) {
@@ -539,7 +565,8 @@
         // Update thinking display
         thinkingDisplay.textContent = frame.thinking || 'No thinking recorded for this iteration';
         
-        // Update active frame
+        // Update active frame and current view index
+        currentViewIndex = iteration;
         updateActiveFrame(iteration);
         
         log(`Viewing iteration ${iteration + 1}`);
@@ -548,16 +575,25 @@
 
     function clearFilmReel() {
       filmFrames = [];
+      conversationHistory = [];
+      currentViewIndex = -1;
       filmReelEl.innerHTML = '';
     }
 
     async function runIteration(iterationNumber, totalIterations) {
+      // Check if user requested stop
+      if (shouldStopIterations) {
+        log('Iterations stopped by user');
+        return false;
+      }
+
       try {
         log(`Starting iteration ${iterationNumber + 1}/${totalIterations}...`);
         currentIterationEl.textContent = iterationNumber + 1;
 
         const previousImage = iterationNumber > 0 ? getCanvasImage() : undefined;
         const previousCode = iterationNumber > 0 ? lastCode : undefined;
+        const previousThinking = iterationNumber > 0 ? lastThinking : undefined;
 
         const response = await fetch('/api/iterate', {
           method: 'POST',
@@ -572,6 +608,8 @@
             temperature: enableThinkingInput.checked ? 1.0 : parseFloat(temperatureInput.value),
             previousImage,
             previousCode,
+            previousThinking,
+            conversationHistory,
           }),
         });
 
@@ -579,6 +617,12 @@
 
         if (!data.success) {
           throw new Error(data.error || 'API call failed');
+        }
+
+        // Check if model wants to stop
+        if (data.shouldStop) {
+          log(`✓ Model declared completion - stopping iterations`);
+          return false;
         }
 
         // The backend already cleaned it, but do a final pass just in case
@@ -607,9 +651,18 @@
           lastCode = code;
           lastThinking = thinking;
           
+          // Add to conversation history
+          conversationHistory.push({
+            code,
+            thinking,
+          });
+          
           // Add to film reel
           const imageDataURL = getCanvasImageDataURL();
           addFilmFrame(iterationNumber, imageDataURL, code, thinking);
+          
+          // Update current view to the latest frame
+          currentViewIndex = iterationNumber;
           
           return true;
         } else {
@@ -629,7 +682,10 @@
       if (isRunning) return;
 
       isRunning = true;
-      startBtn.disabled = true;
+      shouldStopIterations = false;
+      startBtn.style.display = 'none';
+      stopBtn.style.display = 'inline-block';
+      continueBtn.style.display = 'none';
       setStatus('running');
       lastCode = '';
       lastThinking = '';
@@ -642,10 +698,16 @@
       log(`🎨 Starting avatar creation with ${totalIterations} iterations...`);
       clearCanvas();
 
-      for (let i = 0; i < totalIterations; i++) {
+      await runIterations(totalIterations);
+    }
+
+    async function runIterations(totalIterations) {
+      const startIteration = filmFrames.length;
+      
+      for (let i = startIteration; i < totalIterations; i++) {
         const success = await runIteration(i, totalIterations);
         if (!success) {
-          log('Stopping due to error', true);
+          log('Stopping due to error or completion', success === false && !shouldStopIterations);
           break;
         }
         
@@ -657,11 +719,39 @@
 
       log(`✓ Avatar creation complete!`);
       isRunning = false;
-      startBtn.disabled = false;
+      startBtn.style.display = 'inline-block';
+      stopBtn.style.display = 'none';
+      continueBtn.style.display = 'inline-block';
       setStatus('idle');
     }
 
+    function stopIterations() {
+      shouldStopIterations = true;
+      log('Stop requested - will stop after current iteration');
+    }
+
+    async function continueIterations() {
+      if (isRunning) return;
+      
+      const additionalIterations = 5;
+      const newTotal = filmFrames.length + additionalIterations;
+      
+      isRunning = true;
+      shouldStopIterations = false;
+      startBtn.style.display = 'none';
+      stopBtn.style.display = 'inline-block';
+      continueBtn.style.display = 'none';
+      setStatus('running');
+      
+      totalIterationsEl.textContent = newTotal;
+      log(`➕ Continuing with ${additionalIterations} more iterations...`);
+      
+      await runIterations(newTotal);
+    }
+
     startBtn.addEventListener('click', startAvatarCreation);
+    stopBtn.addEventListener('click', stopIterations);
+    continueBtn.addEventListener('click', continueIterations);
 
     // Initialize
     clearCanvas();

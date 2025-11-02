@@ -24,6 +24,11 @@ interface IterationRequest {
   temperature: number;
   previousImage?: string; // base64 encoded
   previousCode?: string; // the code from the last iteration
+  previousThinking?: string; // the thinking from the last iteration
+  conversationHistory?: Array<{
+    code: string;
+    thinking: string;
+  }>;
 }
 
 async function createMessageWithRetry(params: any, maxRetries = 3): Promise<any> {
@@ -57,7 +62,7 @@ async function createMessageWithRetry(params: any, maxRetries = 3): Promise<any>
 
 app.post('/api/iterate', async (req, res) => {
   try {
-    const { persona, iterationNumber, totalIterations, enableThinking, temperature, previousImage, previousCode }: IterationRequest = req.body;
+    const { persona, iterationNumber, totalIterations, enableThinking, temperature, previousImage, previousCode, previousThinking, conversationHistory }: IterationRequest = req.body;
 
     let userMessage = '';
     
@@ -73,7 +78,9 @@ For this first iteration, write JavaScript code that draws your avatar on a canv
 - Draw your avatar however you envision it
 - Be complete, executable JavaScript (no placeholders)
 
-Respond with ONLY the JavaScript code, no explanations, no markdown code blocks - just the raw JavaScript.`;
+If you feel the avatar is complete and perfect, you can respond with just the word "STOP" instead of code to end the iterations early.
+
+Respond with ONLY the JavaScript code (or "STOP"), no explanations, no markdown code blocks - just the raw JavaScript or STOP.`;
     } else {
       // Subsequent iterations - provide feedback loop
       userMessage = `This is iteration ${iterationNumber + 1} of ${totalIterations}. Here is what your avatar currently looks like, along with the code you wrote to create it.
@@ -87,16 +94,55 @@ Analyze the image and code, then write improved JavaScript code to refine your a
 - What's working well?
 - What could be more expressive or clear?
 - How can you better represent yourself?
+- Are you satisfied with the current result?
 
 The code should:
 - Work with a canvas that is 512x512 pixels
 - Use the variable 'ctx' which is already set up as the 2D context
 - Be complete, executable JavaScript (no placeholders)
 
-Respond with ONLY the JavaScript code, no explanations, no markdown code blocks - just the raw JavaScript.`;
+If you feel the avatar is complete and perfect, you can respond with just the word "STOP" instead of code to end the iterations early.
+
+Respond with ONLY the JavaScript code (or "STOP"), no explanations, no markdown code blocks - just the raw JavaScript or STOP.`;
     }
 
     const messages: Array<any> = [];
+
+    // Build conversation history with thinking blocks if we have history
+    if (conversationHistory && conversationHistory.length > 0) {
+      for (let i = 0; i < conversationHistory.length; i++) {
+        const hist = conversationHistory[i];
+        const content: Array<any> = [];
+        
+        // Add thinking block if we have thinking and thinking mode is enabled
+        if (enableThinking && hist.thinking) {
+          content.push({
+            type: 'thinking',
+            thinking: hist.thinking,
+            signature: '',  // Empty signature for historical thinking
+          });
+        }
+        
+        // Add text block with the code
+        content.push({
+          type: 'text',
+          text: hist.code,
+        });
+        
+        messages.push({
+          role: 'assistant',
+          content,
+        });
+        
+        // Add a simple user message acknowledging the iteration (except for the last one)
+        if (i < conversationHistory.length - 1) {
+          messages.push({
+            role: 'user',
+            content: `Continue refining the avatar for iteration ${i + 2}.`,
+          });
+        }
+      }
+    }
 
     // Add current message with optional image
     if (previousImage) {
@@ -161,10 +207,14 @@ Respond with ONLY the JavaScript code, no explanations, no markdown code blocks 
       .replace(/```\s*/g, '')             // Remove any remaining ```
       .trim();                            // Remove leading/trailing whitespace
 
+    // Check if the model wants to stop
+    const shouldStop = code.toUpperCase() === 'STOP';
+
     res.json({
       success: true,
-      code,
+      code: shouldStop ? '' : code,
       thinking,
+      shouldStop,
       usage: response.usage,
     });
   } catch (error) {
