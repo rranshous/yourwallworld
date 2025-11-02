@@ -19,7 +19,9 @@ const anthropic = new Anthropic({
 interface IterationRequest {
   persona: string;
   iterationNumber: number;
+  totalIterations: number;
   previousImage?: string; // base64 encoded
+  previousCode?: string; // the code from the last iteration
   conversationHistory: Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -28,17 +30,17 @@ interface IterationRequest {
 
 app.post('/api/iterate', async (req, res) => {
   try {
-    const { persona, iterationNumber, previousImage, conversationHistory }: IterationRequest = req.body;
+    const { persona, iterationNumber, totalIterations, previousImage, previousCode, conversationHistory }: IterationRequest = req.body;
 
     let userMessage = '';
     
     if (iterationNumber === 0) {
       // First iteration - establish the task
-      userMessage = `${persona}
+      userMessage = `Your task: Create a visual avatar for yourself using JavaScript canvas drawing code.
 
-Your task: Create a visual avatar for yourself using JavaScript canvas drawing code.
+You will have ${totalIterations} iterations to refine your avatar. This is iteration 1 of ${totalIterations}.
 
-You will have multiple iterations to refine your avatar. For this first iteration, write JavaScript code that draws your avatar on a canvas. The code should:
+For this first iteration, write JavaScript code that draws your avatar on a canvas. The code should:
 - Work with a canvas that is 512x512 pixels
 - Use the variable 'ctx' which is already set up as the 2D context
 - Draw your avatar however you envision it
@@ -47,9 +49,14 @@ You will have multiple iterations to refine your avatar. For this first iteratio
 Respond with ONLY the JavaScript code, no explanations, no markdown code blocks - just the raw JavaScript.`;
     } else {
       // Subsequent iterations - provide feedback loop
-      userMessage = `This is iteration ${iterationNumber}. Here is what your avatar currently looks like.
+      userMessage = `This is iteration ${iterationNumber + 1} of ${totalIterations}. Here is what your avatar currently looks like, along with the code you wrote to create it.
 
-Analyze the image and then write improved JavaScript code to refine your avatar. Consider:
+Your previous code:
+\`\`\`javascript
+${previousCode}
+\`\`\`
+
+Analyze the image and code, then write improved JavaScript code to refine your avatar. Consider:
 - What's working well?
 - What could be more expressive or clear?
 - How can you better represent yourself?
@@ -101,6 +108,7 @@ Respond with ONLY the JavaScript code, no explanations, no markdown code blocks 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
+      system: persona,
       messages,
     });
 

@@ -269,6 +269,7 @@
 
     let conversationHistory = [];
     let isRunning = false;
+    let lastCode = '';
 
     function log(message, isError = false) {
       const entry = document.createElement('div');
@@ -310,6 +311,7 @@
         currentIterationEl.textContent = iterationNumber + 1;
 
         const previousImage = iterationNumber > 0 ? getCanvasImage() : undefined;
+        const previousCode = iterationNumber > 0 ? lastCode : undefined;
 
         const response = await fetch('/api/iterate', {
           method: 'POST',
@@ -319,7 +321,9 @@
           body: JSON.stringify({
             persona: personaInput.value,
             iterationNumber,
+            totalIterations,
             previousImage,
+            previousCode,
             conversationHistory,
           }),
         });
@@ -341,6 +345,9 @@
         
         if (result.success) {
           log(`✓ Iteration ${iterationNumber + 1} complete - avatar updated`);
+          
+          // Save the code for the next iteration
+          lastCode = code;
           
           // Update conversation history
           conversationHistory.push({
@@ -366,6 +373,7 @@
       startBtn.disabled = true;
       setStatus('running');
       conversationHistory = [];
+      lastCode = '';
 
       const totalIterations = parseInt(iterationsInput.value);
       totalIterationsEl.textContent = totalIterations;
