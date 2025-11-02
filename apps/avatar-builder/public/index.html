@@ -610,12 +610,15 @@
           // Add to film reel
           const imageDataURL = getCanvasImageDataURL();
           addFilmFrame(iterationNumber, imageDataURL, code, thinking);
+          
+          return true;
         } else {
-          log(`✗ Error executing code: ${result.error}`, true);
-          throw new Error(result.error);
+          log(`✗ Code execution error: ${result.error}`, true);
+          log(`Retrying iteration ${iterationNumber + 1}...`);
+          
+          // Retry the same iteration (don't increment)
+          return await runIteration(iterationNumber, totalIterations);
         }
-
-        return true;
       } catch (error) {
         log(`✗ Error in iteration ${iterationNumber + 1}: ${error.message}`, true);
         return false;

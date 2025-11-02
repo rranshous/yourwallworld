@@ -126,7 +126,7 @@ Respond with ONLY the JavaScript code, no explanations, no markdown code blocks 
 
     const requestParams: any = {
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 4096,
+      max_tokens: 20000,
       temperature: temperature ?? 1.0,
       system: persona,
       messages,
