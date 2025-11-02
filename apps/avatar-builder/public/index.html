@@ -125,6 +125,63 @@
       background: white;
     }
 
+    .film-reel {
+      margin-top: 15px;
+      padding: 10px;
+      background: #0a0a0a;
+      border-radius: 4px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .film-reel-title {
+      font-size: 0.85em;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .film-frame {
+      display: inline-block;
+      margin-right: 8px;
+      cursor: pointer;
+      position: relative;
+      border: 2px solid #333;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .film-frame:hover {
+      border-color: #00ff88;
+      transform: translateY(-2px);
+    }
+
+    .film-frame.active {
+      border-color: #00ff88;
+      box-shadow: 0 0 10px #00ff8844;
+    }
+
+    .film-frame img {
+      display: block;
+      height: 80px;
+      width: 80px;
+      object-fit: contain;
+      background: white;
+    }
+
+    .film-frame-label {
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7em;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    .film-frame.active .film-frame-label {
+      color: #00ff88;
+    }
+
     .iteration-info {
       margin-top: 10px;
       padding: 10px;
@@ -241,6 +298,10 @@
         <div class="iteration-info">
           Iteration: <span id="currentIteration">0</span> / <span id="totalIterations">0</span>
         </div>
+        <div class="film-reel">
+          <div class="film-reel-title">📽️ Progression:</div>
+          <div id="filmReel"></div>
+        </div>
       </div>
 
       <div class="panel">
@@ -266,10 +327,12 @@
     const logEl = document.getElementById('log');
     const currentIterationEl = document.getElementById('currentIteration');
     const totalIterationsEl = document.getElementById('totalIterations');
+    const filmReelEl = document.getElementById('filmReel');
 
     let conversationHistory = [];
     let isRunning = false;
     let lastCode = '';
+    let filmFrames = []; // Array of {iteration, imageData, code}
 
     function log(message, isError = false) {
       const entry = document.createElement('div');
@@ -303,6 +366,69 @@
 
     function getCanvasImage() {
       return canvas.toDataURL('image/png').split(',')[1]; // Get base64 without prefix
+    }
+
+    function getCanvasImageDataURL() {
+      return canvas.toDataURL('image/png'); // Full data URL with prefix
+    }
+
+    function addFilmFrame(iteration, imageDataURL, code) {
+      filmFrames.push({ iteration, imageDataURL, code });
+      
+      const frame = document.createElement('div');
+      frame.className = 'film-frame';
+      frame.dataset.iteration = iteration;
+      
+      const img = document.createElement('img');
+      img.src = imageDataURL;
+      
+      const label = document.createElement('div');
+      label.className = 'film-frame-label';
+      label.textContent = `#${iteration + 1}`;
+      
+      frame.appendChild(img);
+      frame.appendChild(label);
+      
+      frame.addEventListener('click', () => {
+        loadFilmFrame(iteration);
+      });
+      
+      filmReelEl.appendChild(frame);
+      
+      // Mark this frame as active
+      updateActiveFrame(iteration);
+    }
+
+    function updateActiveFrame(iteration) {
+      filmReelEl.querySelectorAll('.film-frame').forEach(frame => {
+        frame.classList.toggle('active', parseInt(frame.dataset.iteration) === iteration);
+      });
+    }
+
+    function loadFilmFrame(iteration) {
+      const frame = filmFrames[iteration];
+      if (frame) {
+        // Load the image back onto the canvas
+        const img = new Image();
+        img.onload = () => {
+          clearCanvas();
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = frame.imageDataURL;
+        
+        // Update code display
+        codeDisplay.textContent = frame.code;
+        
+        // Update active frame
+        updateActiveFrame(iteration);
+        
+        log(`Viewing iteration ${iteration + 1}`);
+      }
+    }
+
+    function clearFilmReel() {
+      filmFrames = [];
+      filmReelEl.innerHTML = '';
     }
 
     async function runIteration(iterationNumber, totalIterations) {
@@ -349,6 +475,10 @@
           // Save the code for the next iteration
           lastCode = code;
           
+          // Add to film reel
+          const imageDataURL = getCanvasImageDataURL();
+          addFilmFrame(iterationNumber, imageDataURL, code);
+          
           // Update conversation history
           conversationHistory.push({
             role: 'assistant',
@@ -374,6 +504,7 @@
       setStatus('running');
       conversationHistory = [];
       lastCode = '';
+      clearFilmReel();
 
       const totalIterations = parseInt(iterationsInput.value);
       totalIterationsEl.textContent = totalIterations;
