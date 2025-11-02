@@ -22,15 +22,11 @@ interface IterationRequest {
   totalIterations: number;
   previousImage?: string; // base64 encoded
   previousCode?: string; // the code from the last iteration
-  conversationHistory: Array<{
-    role: 'user' | 'assistant';
-    content: string;
-  }>;
 }
 
 app.post('/api/iterate', async (req, res) => {
   try {
-    const { persona, iterationNumber, totalIterations, previousImage, previousCode, conversationHistory }: IterationRequest = req.body;
+    const { persona, iterationNumber, totalIterations, previousImage, previousCode }: IterationRequest = req.body;
 
     let userMessage = '';
     
@@ -71,14 +67,6 @@ Respond with ONLY the JavaScript code, no explanations, no markdown code blocks 
 
     const messages: Array<any> = [];
 
-    // Add conversation history
-    conversationHistory.forEach(msg => {
-      messages.push({
-        role: msg.role,
-        content: msg.content
-      });
-    });
-
     // Add current message with optional image
     if (previousImage) {
       messages.push({
@@ -106,8 +94,12 @@ Respond with ONLY the JavaScript code, no explanations, no markdown code blocks 
     }
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 4096,
+      // thinking: {
+      //   "type": "enabled",
+      //   "budget_tokens": 2000
+      // },
       system: persona,
       messages,
     });

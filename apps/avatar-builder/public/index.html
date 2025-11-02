@@ -329,7 +329,6 @@
     const totalIterationsEl = document.getElementById('totalIterations');
     const filmReelEl = document.getElementById('filmReel');
 
-    let conversationHistory = [];
     let isRunning = false;
     let lastCode = '';
     let filmFrames = []; // Array of {iteration, imageData, code}
@@ -450,7 +449,6 @@
             totalIterations,
             previousImage,
             previousCode,
-            conversationHistory,
           }),
         });
 
@@ -478,12 +476,6 @@
           // Add to film reel
           const imageDataURL = getCanvasImageDataURL();
           addFilmFrame(iterationNumber, imageDataURL, code);
-          
-          // Update conversation history
-          conversationHistory.push({
-            role: 'assistant',
-            content: code,
-          });
         } else {
           log(`✗ Error executing code: ${result.error}`, true);
           throw new Error(result.error);
@@ -502,7 +494,6 @@
       isRunning = true;
       startBtn.disabled = true;
       setStatus('running');
-      conversationHistory = [];
       lastCode = '';
       clearFilmReel();
 
