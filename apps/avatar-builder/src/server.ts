@@ -24,6 +24,35 @@ interface IterationRequest {
   previousCode?: string; // the code from the last iteration
 }
 
+async function createMessageWithRetry(params: any, maxRetries = 3): Promise<any> {
+  let lastError;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await anthropic.messages.create(params);
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if it's an overloaded error
+      const isOverloaded = error?.error?.error?.type === 'api_error' && 
+                          error?.error?.error?.message === 'Overloaded';
+      
+      if (isOverloaded && attempt < maxRetries - 1) {
+        // Exponential backoff: 2s, 4s, 8s
+        const waitTime = Math.pow(2, attempt + 1) * 1000;
+        console.log(`API overloaded, retrying in ${waitTime}ms... (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      // If it's not overloaded or we're out of retries, throw the error
+      throw error;
+    }
+  }
+  
+  throw lastError;
+}
+
 app.post('/api/iterate', async (req, res) => {
   try {
     const { persona, iterationNumber, totalIterations, previousImage, previousCode }: IterationRequest = req.body;
@@ -93,22 +122,33 @@ Respond with ONLY the JavaScript code, no explanations, no markdown code blocks 
       });
     }
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
+    const response = await createMessageWithRetry({
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
-      // thinking: {
-      //   "type": "enabled",
-      //   "budget_tokens": 2000
-      // },
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 2000,
+      },
       system: persona,
       messages,
     });
 
-    const code = response.content[0].type === 'text' ? response.content[0].text : '';
+    // Extract thinking and code from response
+    let thinking = '';
+    let code = '';
+    
+    for (const block of response.content) {
+      if (block.type === 'thinking') {
+        thinking = block.thinking;
+      } else if (block.type === 'text') {
+        code = block.text;
+      }
+    }
 
     res.json({
       success: true,
       code,
+      thinking,
       usage: response.usage,
     });
   } catch (error) {

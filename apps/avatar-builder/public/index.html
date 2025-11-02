@@ -212,6 +212,25 @@
       color: #e0e0e0;
     }
 
+    .thinking-display {
+      background: #0a0a0a;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.85em;
+      border: 1px solid #333;
+      margin-top: 10px;
+    }
+
+    .thinking-display pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      color: #aaa;
+      font-style: italic;
+    }
+
     .log {
       background: #0a0a0a;
       padding: 15px;
@@ -310,6 +329,11 @@
           <pre id="codeDisplay">No code generated yet...</pre>
         </div>
 
+        <h2 style="margin-top: 20px;">Thinking Process</h2>
+        <div class="thinking-display">
+          <pre id="thinkingDisplay">No thinking yet...</pre>
+        </div>
+
         <h2 style="margin-top: 20px;">Log</h2>
         <div class="log" id="log"></div>
       </div>
@@ -324,6 +348,7 @@
     const personaInput = document.getElementById('persona');
     const iterationsInput = document.getElementById('iterations');
     const codeDisplay = document.getElementById('codeDisplay');
+    const thinkingDisplay = document.getElementById('thinkingDisplay');
     const logEl = document.getElementById('log');
     const currentIterationEl = document.getElementById('currentIteration');
     const totalIterationsEl = document.getElementById('totalIterations');
@@ -331,7 +356,8 @@
 
     let isRunning = false;
     let lastCode = '';
-    let filmFrames = []; // Array of {iteration, imageData, code}
+    let lastThinking = '';
+    let filmFrames = []; // Array of {iteration, imageData, code, thinking}
 
     function log(message, isError = false) {
       const entry = document.createElement('div');
@@ -371,8 +397,8 @@
       return canvas.toDataURL('image/png'); // Full data URL with prefix
     }
 
-    function addFilmFrame(iteration, imageDataURL, code) {
-      filmFrames.push({ iteration, imageDataURL, code });
+    function addFilmFrame(iteration, imageDataURL, code, thinking) {
+      filmFrames.push({ iteration, imageDataURL, code, thinking });
       
       const frame = document.createElement('div');
       frame.className = 'film-frame';
@@ -418,6 +444,9 @@
         // Update code display
         codeDisplay.textContent = frame.code;
         
+        // Update thinking display
+        thinkingDisplay.textContent = frame.thinking || 'No thinking recorded for this iteration';
+        
         // Update active frame
         updateActiveFrame(iteration);
         
@@ -462,7 +491,10 @@
         let code = data.code;
         code = code.replace(/```javascript\n?/g, '').replace(/```\n?/g, '').trim();
 
+        const thinking = data.thinking || '';
+
         codeDisplay.textContent = code;
+        thinkingDisplay.textContent = thinking || 'No thinking for this iteration';
 
         // Execute the code
         const result = executeCode(code);
@@ -470,12 +502,13 @@
         if (result.success) {
           log(`✓ Iteration ${iterationNumber + 1} complete - avatar updated`);
           
-          // Save the code for the next iteration
+          // Save the code and thinking for the next iteration
           lastCode = code;
+          lastThinking = thinking;
           
           // Add to film reel
           const imageDataURL = getCanvasImageDataURL();
-          addFilmFrame(iterationNumber, imageDataURL, code);
+          addFilmFrame(iterationNumber, imageDataURL, code, thinking);
         } else {
           log(`✗ Error executing code: ${result.error}`, true);
           throw new Error(result.error);
@@ -495,6 +528,7 @@
       startBtn.disabled = true;
       setStatus('running');
       lastCode = '';
+      lastThinking = '';
       clearFilmReel();
 
       const totalIterations = parseInt(iterationsInput.value);
