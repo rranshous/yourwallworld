@@ -110,37 +110,32 @@ Respond with ONLY the JavaScript code (or "STOP"), no explanations, no markdown 
     const messages: Array<any> = [];
 
     // Build conversation history with thinking blocks if we have history
+    // We only include thinking blocks (not the code) to save tokens
+    // The model can see the current code and image, and follow its thought process
     if (conversationHistory && conversationHistory.length > 0) {
       for (let i = 0; i < conversationHistory.length; i++) {
         const hist = conversationHistory[i];
-        const content: Array<any> = [];
         
-        // Add thinking block if we have thinking, signature, and thinking mode is enabled
+        // Only add thinking blocks if we have thinking, signature, and thinking mode is enabled
         if (enableThinking && hist.thinking && hist.signature) {
-          content.push({
-            type: 'thinking',
-            thinking: hist.thinking,
-            signature: hist.signature,
-          });
-        }
-        
-        // Add text block with the code
-        content.push({
-          type: 'text',
-          text: hist.code,
-        });
-        
-        messages.push({
-          role: 'assistant',
-          content,
-        });
-        
-        // Add a simple user message acknowledging the iteration (except for the last one)
-        if (i < conversationHistory.length - 1) {
           messages.push({
-            role: 'user',
-            content: `Continue refining the avatar for iteration ${i + 2}.`,
+            role: 'assistant',
+            content: [
+              {
+                type: 'thinking',
+                thinking: hist.thinking,
+                signature: hist.signature,
+              },
+            ],
           });
+          
+          // Add a minimal user acknowledgment (except for the last one)
+          if (i < conversationHistory.length - 1) {
+            messages.push({
+              role: 'user',
+              content: 'Continue.',
+            });
+          }
         }
       }
     }
