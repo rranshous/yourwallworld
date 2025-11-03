@@ -1,25 +1,122 @@
-# YourWallWorld
+# YourWallWorld 🌐
 
-Experiments in giving Claude a persistent presence in physical space.
+Experiments in giving Claude a persistent presence in physical space through interactive feedback loops.
 
 ## Concept
 
-This project explores creating a tangible AI presence through a feedback loop:
+This project explores creating a tangible AI presence through iterative visual feedback:
 - Project content onto a wall
 - Point a webcam at the wall
 - Let Claude see its own state and interface
 - Externalize all computation/thought for transparency and empathy
 
+The goal is to create a continuous, observable loop where Claude can maintain presence and interact with physical space.
+
 ## Apps
 
 This repo contains multiple experimental apps as we iterate on the concept:
 
-### 🎨 [Avatar Builder](/apps/avatar-builder)
-**Status**: In progress  
-First experiment: Let Claude iteratively design its own avatar using canvas code and visual feedback.
+### 🎨 [Avatar Builder](./apps/avatar-builder)
 
-See [`/docs/experiments.md`](/docs/experiments.md) for detailed logs and learnings.
+**Status**: ✅ Complete (v1)
+
+The first experiment: Let Claude iteratively design its own avatar using canvas code and visual feedback.
+
+**Key Features:**
+- Iterative design with visual feedback loop
+- Extended thinking mode (2000 tokens of reasoning)
+- Thinking history preservation across iterations
+- Interactive film reel showing progression
+- Stop/continue controls for iteration management
+- Keyboard navigation (← → arrows)
+- Temperature control vs thinking mode toggle
+- Auto-retry on code errors
+- API resilience with exponential backoff
+
+**What We Learned:**
+- Claude can effectively iterate on visual designs with feedback
+- Extended thinking provides valuable insight into design decisions
+- Thinking history creates narrative coherence across iterations
+- Different personas lead to distinctly different visual styles
+- Token optimization matters (thinking-only history vs full code)
+- The feedback loop enables genuine creative evolution
+
+[Explore Avatar Builder →](./apps/avatar-builder)
+
+## Coming Next
+
+Ideas for future experiments:
+- **Interactive Wall**: Real-time webcam feedback for physical presence
+- **State Persistence**: Claude maintaining memory across sessions
+- **Multi-modal Interaction**: Combining visual, audio, and text
+- **Collaborative Space**: Multiple AI agents sharing wall space
 
 ## Philosophy
 
 We're "failing forward" - building small, focused experiments to learn what works. Each app teaches us something about the human-AI interaction loop we're trying to create.
+
+## Repository Structure
+
+```
+yourwallworld/
+├── apps/
+│   └── avatar-builder/     # Iterative AI avatar creator
+├── docs/
+│   ├── idea.md            # Original concept documentation
+│   └── experiments.md     # Detailed experiment logs
+└── README.md
+```
+
+## Getting Started
+
+Each application is self-contained with its own README and setup instructions:
+
+1. **Choose an app** from the `/apps` directory
+2. **Navigate** to that app's directory
+3. **Follow** its specific README for setup and usage
+
+### General Requirements
+- Node.js v16 or higher
+- Anthropic API key (get one at [console.anthropic.com](https://console.anthropic.com))
+
+### Quick Start (Avatar Builder)
+```bash
+cd apps/avatar-builder
+npm install
+echo "ANTHROPIC_API_KEY=your_key_here" > .env
+npm run dev
+```
+
+## Development
+
+This is a monorepo structure. Each application can be developed independently:
+
+```bash
+# Navigate to specific app
+cd apps/[app-name]
+
+# Install and run
+npm install
+npm run dev
+```
+
+## Documentation
+
+- [Original Concept](./docs/idea.md) - The initial vision for YourWallWorld
+- [Experiments Log](./docs/experiments.md) - Detailed notes and learnings from each experiment
+- [Avatar Builder README](./apps/avatar-builder/README.md) - Complete documentation for the avatar builder
+
+## Contributing
+
+This is an experimental project. Ideas and contributions are welcome! Feel free to:
+- Open issues for bugs or ideas
+- Submit PRs for improvements
+- Share your own experiments with the feedback loop concept
+
+## License
+
+MIT
+
+---
+
+Built with curiosity about AI presence, iteration, and the space between digital and physical. 🤖✨
