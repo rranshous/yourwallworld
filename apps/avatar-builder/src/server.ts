@@ -79,9 +79,7 @@ For this first iteration, write JavaScript code that draws your avatar on a canv
 - Draw your avatar however you envision it
 - Be complete, executable JavaScript (no placeholders)
 
-If you feel the avatar is complete and perfect, you can respond with just the word "STOP" instead of code to end the iterations early.
-
-Respond with ONLY the JavaScript code (or "STOP"), no explanations, no markdown code blocks - just the raw JavaScript or STOP.`;
+Respond with ONLY the JavaScript code, no explanations, no markdown code blocks - just the raw JavaScript.`;
     } else {
       // Subsequent iterations - provide feedback loop
       userMessage = `This is iteration ${iterationNumber + 1} of ${totalIterations}. Here is what your avatar currently looks like, along with the code you wrote to create it.
@@ -95,16 +93,14 @@ Analyze the image and code, then write improved JavaScript code to refine your a
 - What's working well?
 - What could be more expressive or clear?
 - How can you better represent yourself?
-- Are you satisfied with the current result?
+- How could you make the image more visually appealing?
 
 The code should:
 - Work with a canvas that is 512x512 pixels
 - Use the variable 'ctx' which is already set up as the 2D context
 - Be complete, executable JavaScript (no placeholders)
 
-If you feel the avatar is complete and perfect, you can respond with just the word "STOP" instead of code to end the iterations early.
-
-Respond with ONLY the JavaScript code (or "STOP"), no explanations, no markdown code blocks - just the raw JavaScript or STOP.`;
+Respond with ONLY the JavaScript code, no explanations, no markdown code blocks - just the raw JavaScript.`;
     }
 
     const messages: Array<any> = [];
@@ -205,15 +201,11 @@ Respond with ONLY the JavaScript code (or "STOP"), no explanations, no markdown 
       .replace(/```\s*/g, '')             // Remove any remaining ```
       .trim();                            // Remove leading/trailing whitespace
 
-    // Check if the model wants to stop
-    const shouldStop = code.toUpperCase() === 'STOP';
-
     res.json({
       success: true,
-      code: shouldStop ? '' : code,
+      code,
       thinking,
       signature,
-      shouldStop,
       usage: response.usage,
     });
   } catch (error) {

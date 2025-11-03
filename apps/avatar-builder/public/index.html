@@ -620,12 +620,6 @@
           throw new Error(data.error || 'API call failed');
         }
 
-        // Check if model wants to stop
-        if (data.shouldStop) {
-          log(`✓ Model declared completion - stopping iterations`);
-          return false;
-        }
-
         // The backend already cleaned it, but do a final pass just in case
         let code = (data.code || '')
           .replace(/```javascript\s*/gi, '')
