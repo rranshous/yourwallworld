@@ -150,12 +150,13 @@
             border: 1px solid #444;
             border-radius: 4px;
             padding: 10px;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
-            font-size: 11px;
+            font-size: 12px;
             font-family: 'Courier New', monospace;
             white-space: pre-wrap;
             color: #aaa;
+            line-height: 1.4;
         }
 
         .checkbox-group {
@@ -251,6 +252,7 @@
                 <div id="thinkingDisplay" class="thinking-box">
                     No thinking yet...
                 </div>
+                <button id="copyThinkingBtn" style="margin-top: 10px; width: 100%; background: #4b5563; color: white;">📋 Copy Thinking</button>
             </div>
 
             <div class="section">
@@ -273,6 +275,7 @@
         const stepBtn = document.getElementById('stepBtn');
         const clearBtn = document.getElementById('clearBtn');
         const startWebcamBtn = document.getElementById('startWebcamBtn');
+        const copyThinkingBtn = document.getElementById('copyThinkingBtn');
         const systemPromptEl = document.getElementById('systemPrompt');
         const enableThinkingEl = document.getElementById('enableThinking');
         const temperatureEl = document.getElementById('temperature');
@@ -396,6 +399,12 @@
                 // Update UI
                 if (data.thinking) {
                     thinkingDisplay.textContent = data.thinking;
+                    thinkingDisplay.style.borderColor = '#22c55e';
+                    setTimeout(() => {
+                        thinkingDisplay.style.borderColor = '#444';
+                    }, 1000);
+                } else {
+                    thinkingDisplay.textContent = 'No thinking in this response (thinking mode may be disabled)';
                 }
 
                 loopCount++;
@@ -445,6 +454,20 @@
             if (!isPlaying) {
                 runInferenceLoop();
             }
+        });
+
+        // Copy thinking button
+        copyThinkingBtn.addEventListener('click', () => {
+            const thinking = thinkingDisplay.textContent;
+            navigator.clipboard.writeText(thinking).then(() => {
+                const originalText = copyThinkingBtn.textContent;
+                copyThinkingBtn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    copyThinkingBtn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
         });
     </script>
 </body>
