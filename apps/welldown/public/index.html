@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>welldown 🕳️</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .main-canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        #mainCanvas {
+            border: 2px solid #333;
+            background: #fff;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: #1a1a1a;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .section {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .section h3 {
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #888;
+        }
+
+        #webcamFeed {
+            width: 100%;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #playPauseBtn {
+            background: #22c55e;
+            color: white;
+        }
+
+        #playPauseBtn.playing {
+            background: #ef4444;
+        }
+
+        #stepBtn {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #clearBtn {
+            background: #6b7280;
+            color: white;
+        }
+
+        textarea, input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .stats {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .stats div {
+            margin: 5px 0;
+        }
+
+        .thinking-box {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            color: #aaa;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        #status {
+            font-size: 12px;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        #status.idle {
+            background: #374151;
+            color: #9ca3af;
+        }
+
+        #status.running {
+            background: #1e40af;
+            color: #93c5fd;
+        }
+
+        #status.error {
+            background: #991b1b;
+            color: #fca5a5;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-canvas-area">
+            <canvas id="mainCanvas" width="1024" height="768"></canvas>
+        </div>
+
+        <div class="sidebar">
+            <div class="section">
+                <h3>🕳️ welldown</h3>
+                <div id="status" class="idle">Idle</div>
+            </div>
+
+            <div class="section">
+                <h3>Controls</h3>
+                <div class="controls">
+                    <button id="playPauseBtn">▶️ Play</button>
+                    <button id="stepBtn">⏯️ Step</button>
+                    <button id="clearBtn">🗑️ Clear</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Webcam Feed</h3>
+                <video id="webcamFeed" autoplay playsinline muted></video>
+                <button id="startWebcamBtn" style="margin-top: 10px; width: 100%;">Start Webcam</button>
+            </div>
+
+            <div class="section">
+                <h3>Configuration</h3>
+                
+                <div class="form-group">
+                    <label for="systemPrompt">System Prompt</label>
+                    <textarea id="systemPrompt">You are an AI observing a wall through a webcam. The wall shows a canvas that you can draw on. Use this space to express yourself, think, take notes, or create patterns. You have no memory except what you can see on the wall.</textarea>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="enableThinking" checked>
+                    <label for="enableThinking" style="margin: 0;">Enable Extended Thinking</label>
+                </div>
+
+                <div class="form-group">
+                    <label for="temperature">Temperature ({{temperature}})</label>
+                    <input type="range" id="temperature" min="0" max="2" step="0.1" value="1.0">
+                </div>
+
+                <div class="form-group">
+                    <label for="loopDelay">Auto Loop Delay (ms)</label>
+                    <input type="number" id="loopDelay" value="2000" min="500" step="500">
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Latest Thinking</h3>
+                <div id="thinkingDisplay" class="thinking-box">
+                    No thinking yet...
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Stats</h3>
+                <div class="stats">
+                    <div>Loops: <span id="loopCount">0</span></div>
+                    <div>Input Tokens: <span id="inputTokens">0</span></div>
+                    <div>Output Tokens: <span id="outputTokens">0</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Elements
+        const mainCanvas = document.getElementById('mainCanvas');
+        const ctx = mainCanvas.getContext('2d');
+        const webcamFeed = document.getElementById('webcamFeed');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const startWebcamBtn = document.getElementById('startWebcamBtn');
+        const systemPromptEl = document.getElementById('systemPrompt');
+        const enableThinkingEl = document.getElementById('enableThinking');
+        const temperatureEl = document.getElementById('temperature');
+        const loopDelayEl = document.getElementById('loopDelay');
+        const thinkingDisplay = document.getElementById('thinkingDisplay');
+        const statusEl = document.getElementById('status');
+        const loopCountEl = document.getElementById('loopCount');
+        const inputTokensEl = document.getElementById('inputTokens');
+        const outputTokensEl = document.getElementById('outputTokens');
+
+        // State
+        let isPlaying = false;
+        let webcamStream = null;
+        let loopCount = 0;
+        let totalInputTokens = 0;
+        let totalOutputTokens = 0;
+        let previousResponse = '';
+
+        // Update temperature display
+        temperatureEl.addEventListener('input', () => {
+            document.querySelector('label[for="temperature"]').textContent = 
+                `Temperature (${temperatureEl.value})`;
+        });
+
+        // Start webcam
+        startWebcamBtn.addEventListener('click', async () => {
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                webcamFeed.srcObject = webcamStream;
+                startWebcamBtn.textContent = '✓ Webcam Active';
+                startWebcamBtn.disabled = true;
+            } catch (err) {
+                console.error('Error accessing webcam:', err);
+                alert('Could not access webcam. Please check permissions.');
+            }
+        });
+
+        // Clear canvas
+        clearBtn.addEventListener('click', () => {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+            previousResponse = '';
+        });
+
+        // Initialize with white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+
+        // Capture webcam frame as base64
+        function captureWebcamFrame() {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = webcamFeed.videoWidth || 1280;
+            tempCanvas.height = webcamFeed.videoHeight || 720;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(webcamFeed, 0, 0);
+            return tempCanvas.toDataURL('image/png').split(',')[1]; // Get base64 part only
+        }
+
+        // Set status
+        function setStatus(message, type = 'idle') {
+            statusEl.textContent = message;
+            statusEl.className = type;
+        }
+
+        // Run one inference loop
+        async function runInferenceLoop() {
+            if (!webcamStream) {
+                alert('Please start the webcam first!');
+                return;
+            }
+
+            try {
+                setStatus('Capturing wall...', 'running');
+                
+                // Capture the webcam feed
+                const wallImage = captureWebcamFrame();
+
+                setStatus('Thinking...', 'running');
+
+                // Call the API
+                const response = await fetch('/api/infer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        systemPrompt: systemPromptEl.value,
+                        wallImage: wallImage,
+                        enableThinking: enableThinkingEl.checked,
+                        temperature: parseFloat(temperatureEl.value),
+                        previousResponse: previousResponse,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'API call failed');
+                }
+
+                setStatus('Drawing...', 'running');
+
+                // Execute the code on the canvas
+                try {
+                    // Clear canvas first
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+                    
+                    // Execute the code
+                    eval(data.code);
+                    previousResponse = data.code;
+                } catch (execError) {
+                    console.error('Error executing canvas code:', execError);
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillText('Error executing code: ' + execError.message, 10, 30);
+                }
+
+                // Update UI
+                if (data.thinking) {
+                    thinkingDisplay.textContent = data.thinking;
+                }
+
+                loopCount++;
+                totalInputTokens += data.usage?.input_tokens || 0;
+                totalOutputTokens += data.usage?.output_tokens || 0;
+
+                loopCountEl.textContent = loopCount;
+                inputTokensEl.textContent = totalInputTokens;
+                outputTokensEl.textContent = totalOutputTokens;
+
+                setStatus('Ready', 'idle');
+
+            } catch (error) {
+                console.error('Inference error:', error);
+                setStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        // Play/pause button
+        playPauseBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            
+            if (isPlaying) {
+                playPauseBtn.textContent = '⏸️ Pause';
+                playPauseBtn.classList.add('playing');
+                autoLoop();
+            } else {
+                playPauseBtn.textContent = '▶️ Play';
+                playPauseBtn.classList.remove('playing');
+            }
+        });
+
+        // Auto loop
+        async function autoLoop() {
+            if (!isPlaying) return;
+
+            await runInferenceLoop();
+
+            if (isPlaying) {
+                const delay = parseInt(loopDelayEl.value) || 2000;
+                setTimeout(autoLoop, delay);
+            }
+        }
+
+        // Step button (manual single loop)
+        stepBtn.addEventListener('click', () => {
+            if (!isPlaying) {
+                runInferenceLoop();
+            }
+        });
+    </script>
+</body>
+</html>
