@@ -230,6 +230,12 @@
             padding: 10px;
             border-radius: 8px;
             backdrop-filter: blur(10px);
+            transition: opacity 0.3s;
+        }
+
+        .projector-controls.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .projector-controls button {
@@ -242,6 +248,27 @@
         #projectorModeBtn {
             background: #8b5cf6;
             color: white;
+        }
+
+        /* Countdown Bar */
+        .countdown-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: #22c55e;
+            width: 100%;
+            transition: width linear;
+            z-index: 999;
+            display: none;
+        }
+
+        .countdown-bar.active {
+            display: block;
+        }
+
+        .projector-mode .countdown-bar {
+            z-index: 1001;
         }
     </style>
 </head>
@@ -280,7 +307,7 @@
                 
                 <div class="form-group">
                     <label for="systemPrompt">System Prompt</label>
-                    <textarea id="systemPrompt">You are an AI which controls a canvas being projected on a wall. Each turn you will receive a webcam image of the wall your canvas is being projected on (and nothing else). The canvas serves as your persistent embodiment. You are being projected on to a living room wall.</textarea>
+                    <textarea id="systemPrompt">You are an AI. You control a canvas being projected on a wall. Each turn you will receive a webcam image of the wall your canvas is being projected on (and nothing else). The canvas serves as your only persistent embodiment, all that you are or want to be. Your method of memory and personification. You have no inputs other than the picture of the wall. You are running persistantly. </textarea>
                 </div>
 
                 <div class="form-group checkbox-group">
@@ -295,7 +322,7 @@
 
                 <div class="form-group">
                     <label for="loopDelay">Auto Loop Delay (ms)</label>
-                    <input type="number" id="loopDelay" value="2000" min="500" step="500">
+                    <input type="number" id="loopDelay" value="5000" min="500" step="500">
                 </div>
             </div>
 
@@ -324,7 +351,11 @@
             <button id="projectorPlayPauseBtn">▶️</button>
             <button id="exitProjectorBtn">✕</button>
         </div>
+        <div class="countdown-bar" id="projectorCountdownBar"></div>
     </div>
+
+    <!-- Countdown Bar for normal mode -->
+    <div class="countdown-bar" id="countdownBar"></div>
 
     <script>
         // Elements
@@ -349,6 +380,9 @@
         const projectorMode = document.getElementById('projectorMode');
         const projectorPlayPauseBtn = document.getElementById('projectorPlayPauseBtn');
         const exitProjectorBtn = document.getElementById('exitProjectorBtn');
+        const countdownBar = document.getElementById('countdownBar');
+        const projectorCountdownBar = document.getElementById('projectorCountdownBar');
+        const projectorControls = document.querySelector('.projector-controls');
 
         // State
         let isPlaying = false;
@@ -357,6 +391,8 @@
         let totalInputTokens = 0;
         let totalOutputTokens = 0;
         let previousResponse = '';
+        let countdownTimeout = null;
+        let isProjectorMode = false;
 
         // Update temperature display
         temperatureEl.addEventListener('input', () => {
@@ -498,8 +534,50 @@
             } else {
                 playPauseBtn.textContent = '▶️ Play';
                 playPauseBtn.classList.remove('playing');
+                // Clear countdown when pausing
+                stopCountdown();
             }
         });
+
+        // Start countdown visual
+        function startCountdown(duration) {
+            stopCountdown(); // Clear any existing countdown
+            
+            const bar = isProjectorMode ? projectorCountdownBar : countdownBar;
+            
+            bar.classList.add('active');
+            bar.style.width = '100%';
+            bar.style.transition = 'none';
+            
+            // Force reflow to reset the transition
+            bar.offsetHeight;
+            
+            // Start the countdown animation
+            bar.style.transition = `width ${duration}ms linear`;
+            bar.style.width = '0%';
+            
+            // Hide projector controls when playing
+            if (isProjectorMode && isPlaying) {
+                projectorControls.classList.add('hidden');
+            }
+        }
+
+        // Stop countdown visual
+        function stopCountdown() {
+            if (countdownTimeout) {
+                clearTimeout(countdownTimeout);
+                countdownTimeout = null;
+            }
+            countdownBar.classList.remove('active');
+            countdownBar.style.width = '0%';
+            projectorCountdownBar.classList.remove('active');
+            projectorCountdownBar.style.width = '0%';
+            
+            // Show projector controls when stopped
+            if (isProjectorMode) {
+                projectorControls.classList.remove('hidden');
+            }
+        }
 
         // Auto loop
         async function autoLoop() {
@@ -508,8 +586,9 @@
             await runInferenceLoop();
 
             if (isPlaying) {
-                const delay = parseInt(loopDelayEl.value) || 2000;
-                setTimeout(autoLoop, delay);
+                const delay = parseInt(loopDelayEl.value) || 5000;
+                startCountdown(delay);
+                countdownTimeout = setTimeout(autoLoop, delay);
             }
         }
 
@@ -536,14 +615,18 @@
 
         // Projector mode
         projectorModeBtn.addEventListener('click', () => {
+            isProjectorMode = true;
             projectorMode.classList.add('active');
             projectorMode.appendChild(mainCanvas);
             updateProjectorPlayPauseBtn();
+            projectorControls.classList.remove('hidden');
         });
 
         exitProjectorBtn.addEventListener('click', () => {
+            isProjectorMode = false;
             projectorMode.classList.remove('active');
             document.querySelector('.main-canvas-area').appendChild(mainCanvas);
+            stopCountdown(); // Clear projector countdown
         });
 
         projectorPlayPauseBtn.addEventListener('click', () => {
