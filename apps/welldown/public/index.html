@@ -194,6 +194,57 @@
         .hidden {
             display: none;
         }
+
+        /* Projector Mode Styles */
+        .projector-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 1000;
+            display: none;
+        }
+
+        .projector-mode.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .projector-mode #mainCanvas {
+            border: none;
+            max-width: 100vw;
+            max-height: 100vh;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+        }
+
+        .projector-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .projector-controls button {
+            padding: 10px 15px;
+            font-size: 18px;
+            min-width: 50px;
+            flex: none;
+        }
+
+        #projectorModeBtn {
+            background: #8b5cf6;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -213,7 +264,10 @@
                 <div class="controls">
                     <button id="playPauseBtn">▶️ Play</button>
                     <button id="stepBtn">⏯️ Step</button>
+                </div>
+                <div class="controls" style="margin-top: 10px;">
                     <button id="clearBtn">🗑️ Clear</button>
+                    <button id="projectorModeBtn">📽️ Projector</button>
                 </div>
             </div>
 
@@ -266,6 +320,14 @@
         </div>
     </div>
 
+    <!-- Projector Mode Overlay -->
+    <div class="projector-mode" id="projectorMode">
+        <div class="projector-controls">
+            <button id="projectorPlayPauseBtn">▶️</button>
+            <button id="exitProjectorBtn">✕</button>
+        </div>
+    </div>
+
     <script>
         // Elements
         const mainCanvas = document.getElementById('mainCanvas');
@@ -285,6 +347,10 @@
         const loopCountEl = document.getElementById('loopCount');
         const inputTokensEl = document.getElementById('inputTokens');
         const outputTokensEl = document.getElementById('outputTokens');
+        const projectorModeBtn = document.getElementById('projectorModeBtn');
+        const projectorMode = document.getElementById('projectorMode');
+        const projectorPlayPauseBtn = document.getElementById('projectorPlayPauseBtn');
+        const exitProjectorBtn = document.getElementById('exitProjectorBtn');
 
         // State
         let isPlaying = false;
@@ -468,6 +534,39 @@
             }).catch(err => {
                 console.error('Failed to copy:', err);
             });
+        });
+
+        // Projector mode
+        projectorModeBtn.addEventListener('click', () => {
+            projectorMode.classList.add('active');
+            projectorMode.appendChild(mainCanvas);
+            updateProjectorPlayPauseBtn();
+        });
+
+        exitProjectorBtn.addEventListener('click', () => {
+            projectorMode.classList.remove('active');
+            document.querySelector('.main-canvas-area').appendChild(mainCanvas);
+        });
+
+        projectorPlayPauseBtn.addEventListener('click', () => {
+            playPauseBtn.click(); // Trigger the main play/pause button
+        });
+
+        function updateProjectorPlayPauseBtn() {
+            projectorPlayPauseBtn.textContent = isPlaying ? '⏸️' : '▶️';
+        }
+
+        // Keep projector button in sync
+        const originalPlayPauseClick = playPauseBtn.onclick;
+        playPauseBtn.addEventListener('click', () => {
+            setTimeout(updateProjectorPlayPauseBtn, 50);
+        });
+
+        // ESC key to exit projector mode
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && projectorMode.classList.contains('active')) {
+                exitProjectorBtn.click();
+            }
         });
     </script>
 </body>
