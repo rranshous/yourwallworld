@@ -215,11 +215,9 @@
 
         .projector-mode #mainCanvas {
             border: none;
-            max-width: 100vw;
-            max-height: 100vh;
-            width: 100vw;
-            height: 100vh;
-            object-fit: contain;
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: fill;
         }
 
         .projector-controls {
@@ -282,7 +280,7 @@
                 
                 <div class="form-group">
                     <label for="systemPrompt">System Prompt</label>
-                    <textarea id="systemPrompt">You are an AI observing a wall through a webcam. The wall shows a canvas that you can draw on. Use this space to express yourself, think, take notes, or create patterns. You have no memory except what you can see on the wall.</textarea>
+                    <textarea id="systemPrompt">You are an AI which controls a canvas being projected on a wall. Each turn you will receive a webcam image of the wall your canvas is being projected on (and nothing else). The canvas serves as your persistent embodiment. You are being projected on to a living room wall.</textarea>
                 </div>
 
                 <div class="form-group checkbox-group">

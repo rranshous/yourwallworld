@@ -57,13 +57,11 @@ app.post('/api/infer', async (req, res) => {
   try {
     const { systemPrompt, wallImage, enableThinking, temperature, previousResponse }: InferenceRequest = req.body;
 
-    const userMessage = `You are looking at the wall through a webcam. The wall displays a canvas that you can modify.
-
-Your task is to analyze what you see on the wall and then provide JavaScript code to update the canvas.
+    const userMessage = `Provide JavaScript code to update the canvas.
 
 The canvas is 1024x768 pixels and the variable 'ctx' (2D context) is available for you to use.
 
-${previousResponse ? `Your previous response was:\n${previousResponse}\n\n` : ''}Respond with ONLY the JavaScript code to draw on the canvas. No explanations, no markdown - just raw JavaScript code.`;
+Respond with ONLY the JavaScript code to draw on the canvas. No explanations, no markdown - just raw JavaScript code.`;
 
     const messages: Array<any> = [
       {
