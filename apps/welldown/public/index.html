@@ -214,35 +214,13 @@
         }
 
         .projector-mode #mainCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
             border: none;
             width: 100vw !important;
             height: 100vh !important;
             object-fit: fill;
-        }
-
-        .projector-controls {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 8px;
-            backdrop-filter: blur(10px);
-            transition: opacity 0.3s;
-        }
-
-        .projector-controls.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .projector-controls button {
-            padding: 10px 15px;
-            font-size: 18px;
-            min-width: 50px;
-            flex: none;
         }
 
         #projectorModeBtn {
@@ -393,10 +371,6 @@
 
     <!-- Projector Mode Overlay -->
     <div class="projector-mode" id="projectorMode">
-        <div class="projector-controls">
-            <button id="projectorPlayPauseBtn">▶️</button>
-            <button id="exitProjectorBtn">✕</button>
-        </div>
         <div class="countdown-bar" id="projectorCountdownBar"></div>
     </div>
 
@@ -434,7 +408,6 @@
         const exitProjectorBtn = document.getElementById('exitProjectorBtn');
         const countdownBar = document.getElementById('countdownBar');
         const projectorCountdownBar = document.getElementById('projectorCountdownBar');
-        const projectorControls = document.querySelector('.projector-controls');
         const enableSpeechEl = document.getElementById('enableSpeech');
         const transcriptOverlay = document.getElementById('transcriptOverlay');
         const transcriptText = document.getElementById('transcriptText');
@@ -714,10 +687,7 @@
             bar.style.transition = `width ${duration}ms linear`;
             bar.style.width = '0%';
             
-            // Hide projector controls when playing
-            if (isProjectorMode && isPlaying) {
-                projectorControls.classList.add('hidden');
-            }
+
 
             // Start listening for speech during countdown
             startListening();
@@ -733,11 +703,6 @@
             countdownBar.style.width = '0%';
             projectorCountdownBar.classList.remove('active');
             projectorCountdownBar.style.width = '0%';
-            
-            // Show projector controls when stopped
-            if (isProjectorMode) {
-                projectorControls.classList.remove('hidden');
-            }
 
             // Stop listening when countdown stops
             stopListening();
@@ -782,35 +747,29 @@
             isProjectorMode = true;
             projectorMode.classList.add('active');
             projectorMode.appendChild(mainCanvas);
-            updateProjectorPlayPauseBtn();
-            projectorControls.classList.remove('hidden');
+            
+            // Auto-start playback when entering projector mode
+            if (!isPlaying) {
+                playPauseBtn.click();
+            }
         });
 
-        exitProjectorBtn.addEventListener('click', () => {
+        function exitProjectorMode() {
             isProjectorMode = false;
             projectorMode.classList.remove('active');
             document.querySelector('.main-canvas-area').appendChild(mainCanvas);
             stopCountdown(); // Clear projector countdown
-        });
-
-        projectorPlayPauseBtn.addEventListener('click', () => {
-            playPauseBtn.click(); // Trigger the main play/pause button
-        });
-
-        function updateProjectorPlayPauseBtn() {
-            projectorPlayPauseBtn.textContent = isPlaying ? '⏸️' : '▶️';
+            
+            // Stop playback when exiting projector mode
+            if (isPlaying) {
+                playPauseBtn.click();
+            }
         }
-
-        // Keep projector button in sync
-        const originalPlayPauseClick = playPauseBtn.onclick;
-        playPauseBtn.addEventListener('click', () => {
-            setTimeout(updateProjectorPlayPauseBtn, 50);
-        });
 
         // ESC key to exit projector mode
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && projectorMode.classList.contains('active')) {
-                exitProjectorBtn.click();
+                exitProjectorMode();
             }
         });
     </script>
