@@ -361,6 +361,11 @@
                     <input type="number" id="loopDelay" value="8000" min="500" step="500">
                 </div>
 
+                <div class="form-group">
+                    <label for="memoryCount">Visual Memory (images): <span id="memoryCountValue">1</span></label>
+                    <input type="range" id="memoryCount" min="1" max="10" step="1" value="1">
+                </div>
+
                 <div class="form-group checkbox-group">
                     <input type="checkbox" id="enableSpeech" checked>
                     <label for="enableSpeech" style="margin: 0;">Enable Speech Input</label>
@@ -433,6 +438,8 @@
         const enableSpeechEl = document.getElementById('enableSpeech');
         const transcriptOverlay = document.getElementById('transcriptOverlay');
         const transcriptText = document.getElementById('transcriptText');
+        const memoryCountEl = document.getElementById('memoryCount');
+        const memoryCountValue = document.getElementById('memoryCountValue');
 
         // State
         let isPlaying = false;
@@ -445,11 +452,17 @@
         let isProjectorMode = false;
         let recognition = null;
         let currentTranscript = '';
+        let imageHistory = []; // Store recent webcam captures
 
         // Update temperature display
         temperatureEl.addEventListener('input', () => {
             document.querySelector('label[for="temperature"]').textContent = 
                 `Temperature (${temperatureEl.value})`;
+        });
+
+        // Update memory count display
+        memoryCountEl.addEventListener('input', () => {
+            memoryCountValue.textContent = memoryCountEl.value;
         });
 
         // Start webcam
@@ -475,6 +488,7 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
             previousResponse = '';
+            imageHistory = []; // Clear image history
         });
 
         // Initialize with white background
@@ -593,6 +607,13 @@
                 
                 // Capture the webcam feed
                 const wallImage = captureWebcamFrame();
+                
+                // Add to history and keep only the requested number of images
+                imageHistory.push(wallImage);
+                const memoryCount = parseInt(memoryCountEl.value) || 1;
+                if (imageHistory.length > memoryCount) {
+                    imageHistory = imageHistory.slice(-memoryCount);
+                }
 
                 setStatus('Thinking...', 'running');
 
@@ -602,7 +623,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         systemPrompt: systemPromptEl.value,
-                        wallImage: wallImage,
+                        wallImages: imageHistory, // Send all images in history
                         enableThinking: enableThinkingEl.checked,
                         temperature: parseFloat(temperatureEl.value),
                         previousResponse: previousResponse,

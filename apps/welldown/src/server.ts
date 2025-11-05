@@ -18,7 +18,7 @@ const anthropic = new Anthropic({
 
 interface InferenceRequest {
   systemPrompt: string;
-  wallImage: string; // base64 encoded webcam capture
+  wallImages: string[]; // array of base64 encoded webcam captures
   enableThinking: boolean;
   temperature: number;
   previousResponse?: string;
@@ -56,7 +56,7 @@ async function createMessageWithRetry(params: any, maxRetries = 3): Promise<any>
 
 app.post('/api/infer', async (req, res) => {
   try {
-    const { systemPrompt, wallImage, enableThinking, temperature, spokenText }: InferenceRequest = req.body;
+    const { systemPrompt, wallImages, enableThinking, temperature, spokenText }: InferenceRequest = req.body;
 
     let userMessage = `You are looking at the wall through a webcam. The wall displays a canvas that you can modify.
 
@@ -64,29 +64,50 @@ Your task is to analyze what you see on the wall and then provide JavaScript cod
 
 The canvas is 1024x768 pixels and the variable 'ctx' (2D context) is available for you to use.`;
 
+    if (wallImages.length > 1) {
+      userMessage += `\n\nYou are being shown ${wallImages.length} images in chronological order (oldest to newest), showing the recent history of the wall.`;
+    }
+
     if (spokenText && spokenText.trim()) {
-      userMessage += `\n\nThe user just said: "${spokenText}"`;
+      userMessage += `\n\nSomeone in the room you occupy just said: "${spokenText}"`;
     }
 
     userMessage += `\n\nRespond with ONLY the JavaScript code to draw on the canvas. No explanations, no markdown - just raw JavaScript code.`;
 
+    // Build the content array with all images
+    const content: Array<any> = [];
+    
+    // Add all images in order (oldest to newest)
+    for (let i = 0; i < wallImages.length; i++) {
+      content.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: wallImages[i],
+        },
+      });
+      
+      // Add a label for context if there are multiple images
+      if (wallImages.length > 1) {
+        const label = i === wallImages.length - 1 ? 'Current (newest)' : `${wallImages.length - i - 1} cycles ago`;
+        content.push({
+          type: 'text',
+          text: `[${label}]`,
+        });
+      }
+    }
+    
+    // Add the main user message at the end
+    content.push({
+      type: 'text',
+      text: userMessage,
+    });
+
     const messages: Array<any> = [
       {
         role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: 'image/png',
-              data: wallImage,
-            },
-          },
-          {
-            type: 'text',
-            text: userMessage,
-          },
-        ],
+        content: content,
       },
     ];
 
