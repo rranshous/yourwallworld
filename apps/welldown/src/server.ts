@@ -22,6 +22,7 @@ interface InferenceRequest {
   enableThinking: boolean;
   temperature: number;
   previousResponse?: string;
+  spokenText?: string;
 }
 
 async function createMessageWithRetry(params: any, maxRetries = 3): Promise<any> {
@@ -55,13 +56,19 @@ async function createMessageWithRetry(params: any, maxRetries = 3): Promise<any>
 
 app.post('/api/infer', async (req, res) => {
   try {
-    const { systemPrompt, wallImage, enableThinking, temperature, previousResponse }: InferenceRequest = req.body;
+    const { systemPrompt, wallImage, enableThinking, temperature, spokenText }: InferenceRequest = req.body;
 
-    const userMessage = `Provide JavaScript code to update the canvas.
+    let userMessage = `You are looking at the wall through a webcam. The wall displays a canvas that you can modify.
 
-The canvas is 1024x768 pixels and the variable 'ctx' (2D context) is available for you to use.
+Your task is to analyze what you see on the wall and then provide JavaScript code to update the canvas.
 
-Respond with ONLY the JavaScript code to draw on the canvas. No explanations, no markdown - just raw JavaScript code.`;
+The canvas is 1024x768 pixels and the variable 'ctx' (2D context) is available for you to use.`;
+
+    if (spokenText && spokenText.trim()) {
+      userMessage += `\n\nThe user just said: "${spokenText}"`;
+    }
+
+    userMessage += `\n\nRespond with ONLY the JavaScript code to draw on the canvas. No explanations, no markdown - just raw JavaScript code.`;
 
     const messages: Array<any> = [
       {

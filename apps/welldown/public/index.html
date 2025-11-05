@@ -270,6 +270,42 @@
         .projector-mode .countdown-bar {
             z-index: 1001;
         }
+
+        /* Speech Transcript Overlay */
+        .transcript-overlay {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #22c55e;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 500;
+            max-width: 80%;
+            text-align: center;
+            z-index: 1002;
+            display: none;
+            backdrop-filter: blur(10px);
+            border: 2px solid #22c55e;
+        }
+
+        .transcript-overlay.active {
+            display: block;
+        }
+
+        .transcript-overlay.listening {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .transcript-text {
+            margin-top: 8px;
+            font-size: 16px;
+            color: #fff;
+            font-weight: normal;
+        }
     </style>
 </head>
 <body>
@@ -322,7 +358,12 @@
 
                 <div class="form-group">
                     <label for="loopDelay">Auto Loop Delay (ms)</label>
-                    <input type="number" id="loopDelay" value="5000" min="500" step="500">
+                    <input type="number" id="loopDelay" value="8000" min="500" step="500">
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="enableSpeech" checked>
+                    <label for="enableSpeech" style="margin: 0;">Enable Speech Input</label>
                 </div>
             </div>
 
@@ -357,6 +398,12 @@
     <!-- Countdown Bar for normal mode -->
     <div class="countdown-bar" id="countdownBar"></div>
 
+    <!-- Speech Transcript Overlay -->
+    <div class="transcript-overlay" id="transcriptOverlay">
+        <div>🎤 Listening...</div>
+        <div class="transcript-text" id="transcriptText"></div>
+    </div>
+
     <script>
         // Elements
         const mainCanvas = document.getElementById('mainCanvas');
@@ -383,6 +430,9 @@
         const countdownBar = document.getElementById('countdownBar');
         const projectorCountdownBar = document.getElementById('projectorCountdownBar');
         const projectorControls = document.querySelector('.projector-controls');
+        const enableSpeechEl = document.getElementById('enableSpeech');
+        const transcriptOverlay = document.getElementById('transcriptOverlay');
+        const transcriptText = document.getElementById('transcriptText');
 
         // State
         let isPlaying = false;
@@ -393,6 +443,8 @@
         let previousResponse = '';
         let countdownTimeout = null;
         let isProjectorMode = false;
+        let recognition = null;
+        let currentTranscript = '';
 
         // Update temperature display
         temperatureEl.addEventListener('input', () => {
@@ -429,6 +481,86 @@
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
 
+        // Initialize Speech Recognition
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    currentTranscript += finalTranscript;
+                }
+
+                // Update display
+                transcriptText.textContent = currentTranscript + interimTranscript;
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    stopListening();
+                }
+            };
+
+            recognition.onend = () => {
+                // Auto-restart if we're still in countdown
+                if (transcriptOverlay.classList.contains('active') && enableSpeechEl.checked) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        // Ignore if already started
+                    }
+                }
+            };
+        } else {
+            console.warn('Speech recognition not supported in this browser');
+            enableSpeechEl.checked = false;
+            enableSpeechEl.disabled = true;
+        }
+
+        // Start listening for speech
+        function startListening() {
+            if (!recognition || !enableSpeechEl.checked) return;
+
+            currentTranscript = '';
+            transcriptText.textContent = '';
+            transcriptOverlay.classList.add('active', 'listening');
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.log('Recognition already started');
+            }
+        }
+
+        // Stop listening for speech
+        function stopListening() {
+            if (!recognition) return;
+
+            transcriptOverlay.classList.remove('active', 'listening');
+            
+            try {
+                recognition.stop();
+            } catch (e) {
+                // Ignore errors
+            }
+        }
+
         // Capture webcam frame as base64
         function captureWebcamFrame() {
             const tempCanvas = document.createElement('canvas');
@@ -452,6 +584,10 @@
                 return;
             }
 
+            // Stop listening and capture any final transcript
+            const spokenText = currentTranscript.trim();
+            stopListening();
+
             try {
                 setStatus('Capturing wall...', 'running');
                 
@@ -470,6 +606,7 @@
                         enableThinking: enableThinkingEl.checked,
                         temperature: parseFloat(temperatureEl.value),
                         previousResponse: previousResponse,
+                        spokenText: spokenText,
                     }),
                 });
 
@@ -560,6 +697,9 @@
             if (isProjectorMode && isPlaying) {
                 projectorControls.classList.add('hidden');
             }
+
+            // Start listening for speech during countdown
+            startListening();
         }
 
         // Stop countdown visual
@@ -577,6 +717,9 @@
             if (isProjectorMode) {
                 projectorControls.classList.remove('hidden');
             }
+
+            // Stop listening when countdown stops
+            stopListening();
         }
 
         // Auto loop
