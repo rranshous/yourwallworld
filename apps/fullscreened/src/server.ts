@@ -1,6 +1,10 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
