@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fullscreened - Visual Memory Loop</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #container {
+            width: 1920px;
+            height: 1080px;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="mainCanvas" width="1920" height="1080"></canvas>
+    </div>
+    
+    <script src="/client.js"></script>
+</body>
+</html>
