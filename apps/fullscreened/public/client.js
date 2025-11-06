@@ -346,6 +346,157 @@ async function init() {
   setInterval(captureSnapshot, 5000);
 }
 
+// Speech recognition
+let recognition = null;
+let isListening = false;
+
+function setupSpeechRecognition() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    console.warn('Speech recognition not supported');
+    panelContent.statusMessage = 'Speech recognition not supported in this browser';
+    return;
+  }
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+  
+  recognition.onstart = () => {
+    isListening = true;
+    panelContent.avatar.state = 'listening';
+    panelContent.statusMessage = 'Listening...';
+    render();
+  };
+  
+  recognition.onresult = async (event) => {
+    const transcript = event.results[0][0].transcript;
+    console.log('Heard:', transcript);
+    
+    panelContent.statusMessage = `You said: "${transcript}"`;
+    panelContent.avatar.state = 'thinking';
+    render();
+    
+    // Send to server for processing
+    await processUserInput(transcript);
+    
+    // Capture snapshot after update
+    await captureSnapshot();
+    
+    // Resume listening after a short delay
+    setTimeout(() => {
+      if (recognition) {
+        startListening();
+      }
+    }, 2000);
+  };
+  
+  recognition.onerror = (event) => {
+    console.error('Speech recognition error:', event.error);
+    isListening = false;
+    panelContent.avatar.state = 'idle';
+    
+    if (event.error !== 'no-speech') {
+      panelContent.statusMessage = `Error: ${event.error}`;
+    }
+    
+    render();
+    
+    // Retry after error
+    setTimeout(() => {
+      if (recognition) {
+        startListening();
+      }
+    }, 3000);
+  };
+  
+  recognition.onend = () => {
+    isListening = false;
+  };
+}
+
+function startListening() {
+  if (recognition && !isListening) {
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error('Error starting recognition:', error);
+      // Already started, ignore
+    }
+  }
+}
+
+function stopListening() {
+  if (recognition && isListening) {
+    recognition.stop();
+  }
+}
+
+async function processUserInput(input) {
+  try {
+    const response = await fetch('/api/process-input', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userInput: input })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Update panel content with response
+      panelContent = { ...panelContent, ...data.content };
+      
+      // Speak the response if available
+      if (data.spokenResponse && 'speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(data.spokenResponse);
+        utterance.onend = () => {
+          panelContent.avatar.state = 'idle';
+          render();
+        };
+        speechSynthesis.speak(utterance);
+      } else {
+        panelContent.avatar.state = 'idle';
+      }
+      
+      render();
+    }
+  } catch (error) {
+    console.error('Error processing input:', error);
+    panelContent.statusMessage = 'Error processing input';
+    panelContent.avatar.state = 'idle';
+    render();
+  }
+}
+
+// Keyboard controls
+document.addEventListener('keydown', (event) => {
+  // Press 'L' to toggle listening
+  if (event.key === 'l' || event.key === 'L') {
+    if (isListening) {
+      stopListening();
+      panelContent.statusMessage = 'Listening stopped';
+      panelContent.avatar.state = 'idle';
+    } else {
+      startListening();
+    }
+    render();
+  }
+  
+  // Press 'C' to clear free draw
+  if (event.key === 'c' || event.key === 'C') {
+    panelContent.freeDrawCommands = [];
+    render();
+  }
+  
+  // Press 'S' to capture snapshot manually
+  if (event.key === 's' || event.key === 'S') {
+    captureSnapshot();
+    panelContent.statusMessage = 'Snapshot captured';
+    render();
+  }
+});
+
 // Start when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
@@ -353,7 +504,29 @@ if (document.readyState === 'loading') {
   init();
 }
 
+// Enhanced initialization
+async function enhancedInit() {
+  await init();
+  setupSpeechRecognition();
+  
+  // Auto-start listening after a moment
+  setTimeout(() => {
+    panelContent.statusMessage = 'Press L to start listening';
+    render();
+  }, 1000);
+}
+
+// Call enhanced init
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', enhancedInit);
+} else {
+  enhancedInit();
+}
+
 // Expose for debugging
 window.panelContent = panelContent;
 window.render = render;
 window.updateContent = updateContent;
+window.startListening = startListening;
+window.stopListening = stopListening;
+window.processUserInput = processUserInput;
