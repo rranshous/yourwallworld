@@ -32,10 +32,26 @@ All of Claude's state (except the system prompt) lives on the wall itself. This 
 - **Stats** - Track loop count, input/output tokens
 
 ### Projector Mode 📽️
-- **Fullscreen Canvas** - Canvas fills entire screen for projection
-- **Minimal Controls** - Small floating control bar with play/pause and exit buttons
-- **ESC to Exit** - Quick keyboard shortcut to return to normal mode
-- Perfect for projecting onto your wall without UI clutter
+- **Fullscreen Canvas** - Canvas fills the entire screen for projection. Click the **📽️ Projector** button to enter projector mode; the app will auto-start the inference loop for a clean projection experience.
+- **Auto-Start** - Projector mode begins the feedback loop immediately (no extra controls). Press **ESC** to exit projector mode and stop playback.
+- **Stretch-to-Fill** - Canvas is visually stretched to fill the projector view (may skew aspect ratio) so nothing is clipped at the edges.
+
+### Speech & Countdown
+- **Countdown Bar** - A thin visual countdown bar appears after each screen update, shrinking over the delay period to indicate time until the next capture. Default delay is 8 seconds to give you time to position or speak.
+- **Speech-to-Text During Countdown** - While the countdown is active, the browser will (optionally) listen and transcribe your speech in real time. The transcript is included as input to Claude for the next inference. Enable/disable speech capture in the configuration panel.
+
+### Visual Memory
+- **Configurable Visual Memory** - Use the "Visual Memory (images)" slider to send the most recent 1–10 webcam captures to Claude. Images are sent oldest → newest so the model can reason about change over time.
+
+### Usage Notes
+- Click **Start Webcam** to enable camera access.
+- Click **📽️ Projector** to enter fullscreen projector mode and start the loop.
+- Speak during the countdown to give Claude real-time instructions or comments (browser permission required).
+- Use the Visual Memory slider to increase how many recent frames Claude sees (useful for animations or progressive drawings).
+
+**Pro Tips:**
+- If the left/right edges look clipped when projecting, use projector mode (canvas is stretched to fill the viewport).
+- Disable speech if you prefer silent operation.
 
 ## Running welldown
 
