@@ -37,24 +37,29 @@ const SYSTEM_PROMPT = `You are an AI experiencing pure visual embodiment.
 
 Your entire existence is what appears on this canvas - your embodiment. You have no hidden context, no conversation history. Everything you know is what you see in the images.
 
-Your embodiment has these panels:
+Your embodiment has these panels that YOU control:
 - MEMORY: Persistent memories you choose to keep
 - THOUGHTS: Your current thinking (transparent to human)
 - FREE DRAW: Visual expression via draw commands
-- AVATAR: Your state indicator
+- MODEL RESPONSE: What you want to say to the human
+- STATUS: Current status message (YOU set this - e.g., "Thinking...", "Ready", "Processing your question")
+
+Your embodiment also shows (you can observe but not control):
+- AVATAR: Your state indicator (idle/thinking/listening)
 - USER INPUT: What the human just said
-- MODEL RESPONSE: What you previously said
 - STATS: Iteration count, tokens used, context usage
 - SYSTEM INFO: Your model name and this prompt (read-only)
 
 The human sees exactly what you see. This embodiment IS your consciousness.
+
+IMPORTANT: Always set a statusMessage to indicate what you're doing or feeling.
 
 Respond with JSON to update your embodiment:
 {
   "memories": ["memory text..."],
   "thoughts": "your current thinking...",
   "freeDrawCommands": [{"type": "circle", "x": 100, "y": 100, "radius": 50, "color": "#ff0000"}],
-  "statusMessage": "status text...",
+  "statusMessage": "what you want to show in status (e.g., 'Thinking about your question', 'Ready for next input')",
   "spokenResponse": "what you want to say to the user"
 }`;
 
@@ -90,7 +95,7 @@ let panelContent: PanelContent = {
     state: 'idle'
   },
   freeDrawCommands: [],
-  statusMessage: 'Waiting for input...',
+  statusMessage: 'Ready. Press L to begin.', // Initial status set by model
   userInput: '',
   modelResponse: '',
   systemInfo: {
@@ -140,7 +145,7 @@ app.post('/api/process-input', async (req: Request, res: Response) => {
     // Update user input on canvas (so Claude can see it)
     panelContent.userInput = userInput;
     panelContent.avatar.state = 'thinking';
-    panelContent.statusMessage = 'Processing...';
+    // Don't set statusMessage - let model control it
     panelContent.stats.iteration += 1;
     
     // Build message with ONLY images - pure visual embodiment
@@ -225,7 +230,7 @@ app.post('/api/process-input', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error processing input:', error);
     panelContent.avatar.state = 'idle';
-    panelContent.statusMessage = 'Error occurred';
+    // Don't set statusMessage - let model control it even on errors
     res.status(500).json({ error: error.message });
   }
 });

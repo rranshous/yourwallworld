@@ -468,7 +468,7 @@ async function captureSnapshot() {
 
 // Initialize
 async function init() {
-  panelContent.statusMessage = 'Ready';
+  panelContent.statusMessage = ''; // Empty - model will set it
   render();
   
   // Fetch initial content
@@ -489,7 +489,7 @@ let isListening = false;
 function setupSpeechRecognition() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     console.warn('Speech recognition not supported');
-    panelContent.statusMessage = 'Speech recognition not supported in this browser';
+    // Don't set statusMessage - model controls it
     return;
   }
   
@@ -502,7 +502,7 @@ function setupSpeechRecognition() {
   recognition.onstart = () => {
     isListening = true;
     panelContent.avatar.state = 'listening';
-    panelContent.statusMessage = 'Listening...';
+    // Don't update statusMessage - let model control it
     render();
   };
   
@@ -510,7 +510,7 @@ function setupSpeechRecognition() {
     const transcript = event.results[0][0].transcript;
     console.log('Heard:', transcript);
     
-    panelContent.statusMessage = `You said: "${transcript}"`;
+    // Don't update statusMessage - let model control it
     panelContent.userInput = transcript; // Update user input on canvas
     panelContent.avatar.state = 'thinking';
     render();
@@ -529,8 +529,7 @@ function setupSpeechRecognition() {
     await new Promise(resolve => setTimeout(resolve, 100));
     await captureSnapshot();
     
-    // Don't auto-resume listening - wait for user to press 'L'
-    panelContent.statusMessage = 'Press L to speak again';
+    // Don't update statusMessage - model controls it now
     panelContent.avatar.state = 'idle';
     render();
   };
@@ -540,11 +539,8 @@ function setupSpeechRecognition() {
     isListening = false;
     panelContent.avatar.state = 'idle';
     
-    if (event.error !== 'no-speech') {
-      panelContent.statusMessage = `Error: ${event.error}. Press L to try again.`;
-    } else {
-      panelContent.statusMessage = 'No speech detected. Press L to try again.';
-    }
+    // Don't update statusMessage - let model control it
+    // Just log errors to console for debugging
     
     render();
     
@@ -593,7 +589,7 @@ async function processUserInput(input) {
     }
   } catch (error) {
     console.error('Error processing input:', error);
-    panelContent.statusMessage = 'Error processing input';
+    // Don't update statusMessage - let model control it
     panelContent.avatar.state = 'idle';
     render();
   }
@@ -605,7 +601,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'l' || event.key === 'L') {
     if (isListening) {
       stopListening();
-      panelContent.statusMessage = 'Listening stopped';
+      // Don't set statusMessage - model controls it
       panelContent.avatar.state = 'idle';
     } else {
       startListening();
@@ -619,10 +615,10 @@ document.addEventListener('keydown', (event) => {
     render();
   }
   
-  // Press 'S' to capture snapshot manually
+  // Press 'S' to capture snapshot manually (for debugging)
   if (event.key === 's' || event.key === 'S') {
     captureSnapshot();
-    panelContent.statusMessage = 'Snapshot captured';
+    // Don't set statusMessage - model controls it
     render();
   }
 });
@@ -639,11 +635,7 @@ async function enhancedInit() {
   await init();
   setupSpeechRecognition();
   
-  // Auto-start listening after a moment
-  setTimeout(() => {
-    panelContent.statusMessage = 'Press L to start listening';
-    render();
-  }, 1000);
+  // Don't set any initial status message - model controls it
 }
 
 // Call enhanced init
