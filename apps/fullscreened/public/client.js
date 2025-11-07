@@ -99,8 +99,8 @@ const LAYOUT = {
     width: 400,
     height: 880,
     padding: 15,
-    lineHeight: 22,
-    fontSize: 15
+    lineHeight: 18,
+    fontSize: 12
   }
 };
 
@@ -142,7 +142,7 @@ function clearCanvas() {
   ctx.fillStyle = '#888';
   ctx.font = '12px Courier New';
   ctx.textAlign = 'center';
-  ctx.fillText('This visual interface IS you. Everything you know is what you see here.', LAYOUT.CANVAS_WIDTH / 2, 50);
+  ctx.fillText('This visual interface IS you. The you which changes and persists.', LAYOUT.CANVAS_WIDTH / 2, 50);
   ctx.textAlign = 'left';
 }
 
@@ -515,21 +515,24 @@ function setupSpeechRecognition() {
     panelContent.avatar.state = 'thinking';
     render();
     
-    // Capture snapshot BEFORE sending (so model sees user input on canvas)
+    // Wait for render to complete, then capture snapshot
+    await new Promise(resolve => setTimeout(resolve, 100));
     await captureSnapshot();
     
-    // Send to server for processing
+    // Send to server for processing (uses snapshots captured above)
     await processUserInput(transcript);
     
-    // Capture snapshot AFTER response (so model's updates are saved)
+    // Render the model's response
+    render();
+    
+    // Wait for render, then capture snapshot of model's response
+    await new Promise(resolve => setTimeout(resolve, 100));
     await captureSnapshot();
     
-    // Resume listening after a short delay
-    setTimeout(() => {
-      if (recognition) {
-        startListening();
-      }
-    }, 2000);
+    // Don't auto-resume listening - wait for user to press 'L'
+    panelContent.statusMessage = 'Press L to speak again';
+    panelContent.avatar.state = 'idle';
+    render();
   };
   
   recognition.onerror = (event) => {
@@ -538,17 +541,14 @@ function setupSpeechRecognition() {
     panelContent.avatar.state = 'idle';
     
     if (event.error !== 'no-speech') {
-      panelContent.statusMessage = `Error: ${event.error}`;
+      panelContent.statusMessage = `Error: ${event.error}. Press L to try again.`;
+    } else {
+      panelContent.statusMessage = 'No speech detected. Press L to try again.';
     }
     
     render();
     
-    // Retry after error
-    setTimeout(() => {
-      if (recognition) {
-        startListening();
-      }
-    }, 3000);
+    // Don't auto-retry - wait for user to press 'L'
   };
   
   recognition.onend = () => {
