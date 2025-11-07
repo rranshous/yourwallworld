@@ -137,14 +137,9 @@ app.post('/api/process-input', async (req: Request, res: Response) => {
     panelContent.statusMessage = 'Processing...';
     panelContent.stats.iteration += 1;
     
-    // Build message with ONLY system prompt and images
-    // No conversation history, no text input - Claude only sees what's on the canvas
-    const messageContent: any[] = [
-      {
-        type: 'text',
-        text: SYSTEM_PROMPT
-      }
-    ];
+    // Build message with ONLY images - pure visual embodiment
+    // Claude reads everything (including system prompt) from the canvas
+    const messageContent: any[] = [];
     
     // Add snapshots as images (Claude sees the canvas with user input on it)
     for (let i = 0; i < Math.min(snapshots.length, 3); i++) {
@@ -160,6 +155,14 @@ app.post('/api/process-input', async (req: Request, res: Response) => {
           }
         });
       }
+    }
+    
+    // If no snapshots yet, we need at least minimal instruction
+    if (messageContent.length === 0) {
+      messageContent.push({
+        type: 'text',
+        text: 'Respond with JSON containing: memories, thoughts, freeDrawCommands, statusMessage, spokenResponse'
+      });
     }
     
     const response = await anthropic.messages.create({
