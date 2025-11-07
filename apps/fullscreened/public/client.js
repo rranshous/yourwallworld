@@ -7,13 +7,14 @@ const ctx = canvas.getContext('2d');
 const LAYOUT = {
   CANVAS_WIDTH: 1920,
   CANVAS_HEIGHT: 1080,
+  HEADER_HEIGHT: 70, // Space for embodiment header
   
   // Left column: Memory panel (vertical)
   MEMORY: {
     x: 0,
-    y: 0,
+    y: 70,
     width: 350,
-    height: 1080,
+    height: 1010,
     padding: 20,
     lineHeight: 30,
     fontSize: 16
@@ -22,9 +23,9 @@ const LAYOUT = {
   // Center top: User Input (what human just said)
   USER_INPUT: {
     x: 350,
-    y: 0,
+    y: 70,
     width: 570,
-    height: 150,
+    height: 130,
     padding: 15,
     lineHeight: 24,
     fontSize: 18
@@ -33,27 +34,27 @@ const LAYOUT = {
   // Center: Free draw area
   FREE_DRAW: {
     x: 350,
-    y: 150,
+    y: 200,
     width: 570,
-    height: 530,
+    height: 480,
     padding: 10
   },
   
   // Top right: Avatar
   AVATAR: {
     x: 920,
-    y: 0,
+    y: 70,
     width: 200,
-    height: 150,
+    height: 130,
     padding: 10
   },
   
   // Top far right: Stats
   STATS: {
     x: 1120,
-    y: 0,
+    y: 70,
     width: 200,
-    height: 150,
+    height: 130,
     padding: 15,
     lineHeight: 22,
     fontSize: 13
@@ -62,12 +63,23 @@ const LAYOUT = {
   // Right column: Thoughts
   THOUGHTS: {
     x: 1320,
-    y: 0,
+    y: 70,
     width: 600,
-    height: 680,
+    height: 505,
     padding: 20,
     lineHeight: 24,
     fontSize: 15
+  },
+  
+  // Bottom right below thoughts: System Info (compact)
+  SYSTEM_INFO: {
+    x: 1320,
+    y: 575,
+    width: 600,
+    height: 505,
+    padding: 15,
+    lineHeight: 16,
+    fontSize: 10
   },
   
   // Bottom center: Status
@@ -80,26 +92,15 @@ const LAYOUT = {
     fontSize: 14
   },
   
-  // Bottom center below status: Model Response
+  // Center right: Model Response (large space for full responses)
   MODEL_RESPONSE: {
-    x: 350,
-    y: 760,
-    width: 570,
-    height: 320,
+    x: 920,
+    y: 200,
+    width: 400,
+    height: 880,
     padding: 15,
     lineHeight: 22,
-    fontSize: 16
-  },
-  
-  // Bottom right: System Info (model + prompt)
-  SYSTEM_INFO: {
-    x: 920,
-    y: 150,
-    width: 400,
-    height: 930,
-    padding: 15,
-    lineHeight: 18,
-    fontSize: 11
+    fontSize: 15
   }
 };
 
@@ -130,6 +131,19 @@ let panelContent = {
 function clearCanvas() {
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, LAYOUT.CANVAS_WIDTH, LAYOUT.CANVAS_HEIGHT);
+  
+  // Draw "YOUR EMBODIMENT" header at the very top
+  ctx.fillStyle = '#ffaa00';
+  ctx.font = 'bold 24px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('═══ YOUR EMBODIMENT ═══', LAYOUT.CANVAS_WIDTH / 2, 30);
+  ctx.textAlign = 'left';
+  
+  ctx.fillStyle = '#888';
+  ctx.font = '12px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('This visual interface IS you. Everything you know is what you see here.', LAYOUT.CANVAS_WIDTH / 2, 50);
+  ctx.textAlign = 'left';
 }
 
 function drawPanel(config, title, bgColor = '#1a1a1a') {
@@ -235,8 +249,8 @@ function drawAvatarPanel() {
   drawPanel(cfg, 'AVATAR', '#1a1a2e');
   
   const centerX = cfg.x + cfg.width / 2;
-  const centerY = cfg.y + cfg.height / 2 + 10;
-  const radius = 50;
+  const centerY = cfg.y + cfg.height / 2 + 5;
+  const radius = 35; // Smaller for reduced height
   
   // Simple circular avatar
   ctx.fillStyle = panelContent.avatar.color;
@@ -246,9 +260,9 @@ function drawAvatarPanel() {
   
   // State indicator
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 12px Courier New';
+  ctx.font = 'bold 10px Courier New';
   ctx.textAlign = 'center';
-  ctx.fillText(panelContent.avatar.state.toUpperCase(), centerX, cfg.y + cfg.height - 20);
+  ctx.fillText(panelContent.avatar.state.toUpperCase(), centerX, cfg.y + cfg.height - 15);
   ctx.textAlign = 'left';
   
   // Pulse effect for thinking/speaking
@@ -257,7 +271,7 @@ function drawAvatarPanel() {
     ctx.lineWidth = 3;
     ctx.globalAlpha = 0.5;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius + 10, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, radius + 8, 0, Math.PI * 2);
     ctx.stroke();
     ctx.globalAlpha = 1.0;
   }
