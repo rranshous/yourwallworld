@@ -344,7 +344,7 @@ function drawUserInputPanel() {
   let y = cfg.y + cfg.padding + 40;
   const maxWidth = cfg.width - (cfg.padding * 2);
   
-  const lines = wrapText(panelContent.userInput || '(waiting for speech...)', maxWidth);
+  const lines = wrapText(panelContent.userInput || '', maxWidth);
   for (const line of lines) {
     if (y + cfg.lineHeight > cfg.y + cfg.height - cfg.padding) break;
     ctx.fillText(line, cfg.x + cfg.padding, y);
@@ -405,7 +405,7 @@ function drawModelResponsePanel() {
   let y = cfg.y + cfg.padding + 40;
   const maxWidth = cfg.width - (cfg.padding * 2);
   
-  const lines = wrapText(panelContent.modelResponse || '(waiting for model...)', maxWidth);
+  const lines = wrapText(panelContent.modelResponse || '', maxWidth);
   for (const line of lines) {
     if (y + cfg.lineHeight > cfg.y + cfg.height - cfg.padding) break;
     ctx.fillText(line, cfg.x + cfg.padding, y);
