@@ -93,7 +93,7 @@ let panelContent: PanelContent = {
     state: 'idle'
   },
   freeDrawCommands: [],
-  statusMessage: 'Ready. Press L to begin.', // Initial status set by model
+  statusMessage: '', // Empty until model sets it
   userInput: '',
   modelResponse: '',
   systemInfo: {
