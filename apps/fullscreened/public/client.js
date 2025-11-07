@@ -75,8 +75,19 @@ const LAYOUT = {
     x: 350,
     y: 680,
     width: 570,
-    height: 100,
+    height: 80,
     padding: 15,
+    fontSize: 14
+  },
+  
+  // Bottom center below status: Model Response
+  MODEL_RESPONSE: {
+    x: 350,
+    y: 760,
+    width: 570,
+    height: 320,
+    padding: 15,
+    lineHeight: 22,
     fontSize: 16
   },
   
@@ -108,6 +119,7 @@ let panelContent = {
   freeDrawCommands: [],
   statusMessage: 'Initializing...',
   userInput: '',
+  modelResponse: '', // What the model said (visible to model)
   systemInfo: {
     modelString: '',
     systemPrompt: ''
@@ -369,6 +381,24 @@ function drawSystemInfoPanel() {
   }
 }
 
+function drawModelResponsePanel() {
+  const cfg = LAYOUT.MODEL_RESPONSE;
+  drawPanel(cfg, 'MODEL RESPONSE', '#2a1a2a');
+  
+  ctx.fillStyle = '#ffaaff';
+  ctx.font = `${cfg.fontSize}px Courier New`;
+  
+  let y = cfg.y + cfg.padding + 40;
+  const maxWidth = cfg.width - (cfg.padding * 2);
+  
+  const lines = wrapText(panelContent.modelResponse || '(waiting for model...)', maxWidth);
+  for (const line of lines) {
+    if (y + cfg.lineHeight > cfg.y + cfg.height - cfg.padding) break;
+    ctx.fillText(line, cfg.x + cfg.padding, y);
+    y += cfg.lineHeight;
+  }
+}
+
 function render() {
   clearCanvas();
   drawMemoryPanel();
@@ -379,6 +409,7 @@ function render() {
   drawFreeDrawPanel();
   drawSystemInfoPanel();
   drawStatusPanel();
+  drawModelResponsePanel();
 }
 
 // API interactions
@@ -542,18 +573,8 @@ async function processUserInput(input) {
       // Update panel content with response
       panelContent = { ...panelContent, ...data.content };
       
-      // Speak the response if available
-      if (data.spokenResponse && 'speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(data.spokenResponse);
-        utterance.onend = () => {
-          panelContent.avatar.state = 'idle';
-          render();
-        };
-        speechSynthesis.speak(utterance);
-      } else {
-        panelContent.avatar.state = 'idle';
-      }
-      
+      // No speech synthesis - model response is visible on canvas
+      panelContent.avatar.state = 'idle';
       render();
     }
   } catch (error) {

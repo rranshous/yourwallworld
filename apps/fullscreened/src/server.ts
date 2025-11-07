@@ -66,6 +66,7 @@ interface PanelContent {
   freeDrawCommands: DrawCommand[];
   statusMessage: string;
   userInput: string; // Last thing user said - displayed on canvas
+  modelResponse: string; // Last thing model said - displayed on canvas
   systemInfo: {
     modelString: string;
     systemPrompt: string;
@@ -87,6 +88,7 @@ let panelContent: PanelContent = {
   freeDrawCommands: [],
   statusMessage: 'Waiting for input...',
   userInput: '',
+  modelResponse: '',
   systemInfo: {
     modelString: MODEL_STRING,
     systemPrompt: SYSTEM_PROMPT
@@ -200,11 +202,14 @@ app.post('/api/process-input', async (req: Request, res: Response) => {
     if (updates.freeDrawCommands) panelContent.freeDrawCommands = [...panelContent.freeDrawCommands, ...updates.freeDrawCommands];
     if (updates.statusMessage) panelContent.statusMessage = updates.statusMessage;
     
+    // Store model response on canvas (so model can see what it said)
+    panelContent.modelResponse = spokenResponse;
+    
     // Update stats
     const maxContextTokens = 200000; // Claude Sonnet 4.5 has 200k context window
     panelContent.stats.tokensUsed += response.usage.input_tokens + response.usage.output_tokens;
     panelContent.stats.contextLevel = response.usage.input_tokens / maxContextTokens;
-    panelContent.avatar.state = 'speaking';
+    panelContent.avatar.state = 'idle'; // Changed from 'speaking' since we removed TTS
     
     res.json({
       success: true,
