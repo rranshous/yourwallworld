@@ -429,11 +429,12 @@ async function init() {
   // Fetch initial content
   await fetchContent();
   
-  // Periodic updates
+  // Periodic updates to sync state from server
   setInterval(fetchContent, 1000);
   
-  // Periodic snapshots
-  setInterval(captureSnapshot, 5000);
+  // No periodic snapshots - only capture when needed:
+  // 1. Before sending to model (with user input)
+  // 2. After model responds (with model's updates)
 }
 
 // Speech recognition
@@ -465,13 +466,17 @@ function setupSpeechRecognition() {
     console.log('Heard:', transcript);
     
     panelContent.statusMessage = `You said: "${transcript}"`;
+    panelContent.userInput = transcript; // Update user input on canvas
     panelContent.avatar.state = 'thinking';
     render();
+    
+    // Capture snapshot BEFORE sending (so model sees user input on canvas)
+    await captureSnapshot();
     
     // Send to server for processing
     await processUserInput(transcript);
     
-    // Capture snapshot after update
+    // Capture snapshot AFTER response (so model's updates are saved)
     await captureSnapshot();
     
     // Resume listening after a short delay
