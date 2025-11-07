@@ -12,40 +12,51 @@ const LAYOUT = {
   MEMORY: {
     x: 0,
     y: 0,
-    width: 400,
+    width: 350,
     height: 1080,
     padding: 20,
     lineHeight: 30,
     fontSize: 16
   },
   
+  // Center top: User Input (what human just said)
+  USER_INPUT: {
+    x: 350,
+    y: 0,
+    width: 570,
+    height: 150,
+    padding: 15,
+    lineHeight: 24,
+    fontSize: 18
+  },
+  
   // Center: Free draw area
   FREE_DRAW: {
-    x: 400,
-    y: 200,
-    width: 920,
-    height: 680,
+    x: 350,
+    y: 150,
+    width: 570,
+    height: 530,
     padding: 10
   },
   
-  // Top center: Avatar
+  // Top right: Avatar
   AVATAR: {
-    x: 400,
+    x: 920,
     y: 0,
-    width: 300,
-    height: 200,
+    width: 200,
+    height: 150,
     padding: 10
   },
   
-  // Top right: Stats
+  // Top far right: Stats
   STATS: {
-    x: 700,
+    x: 1120,
     y: 0,
-    width: 300,
-    height: 200,
-    padding: 20,
-    lineHeight: 25,
-    fontSize: 14
+    width: 200,
+    height: 150,
+    padding: 15,
+    lineHeight: 22,
+    fontSize: 13
   },
   
   // Right column: Thoughts
@@ -53,20 +64,31 @@ const LAYOUT = {
     x: 1320,
     y: 0,
     width: 600,
-    height: 1080,
+    height: 680,
     padding: 20,
     lineHeight: 24,
     fontSize: 15
   },
   
-  // Bottom center: Status/interaction area
+  // Bottom center: Status
   STATUS: {
-    x: 400,
-    y: 880,
-    width: 920,
-    height: 200,
+    x: 350,
+    y: 680,
+    width: 570,
+    height: 100,
     padding: 15,
-    fontSize: 18
+    fontSize: 16
+  },
+  
+  // Bottom right: System Info (model + prompt)
+  SYSTEM_INFO: {
+    x: 920,
+    y: 150,
+    width: 400,
+    height: 930,
+    padding: 15,
+    lineHeight: 18,
+    fontSize: 11
   }
 };
 
@@ -84,7 +106,12 @@ let panelContent = {
     state: 'idle' // idle, thinking, listening, speaking
   },
   freeDrawCommands: [],
-  statusMessage: 'Initializing...'
+  statusMessage: 'Initializing...',
+  userInput: '',
+  systemInfo: {
+    modelString: '',
+    systemPrompt: ''
+  }
 };
 
 // Drawing functions
@@ -272,7 +299,7 @@ function executeDrawCommand(cmd) {
 
 function drawStatusPanel() {
   const cfg = LAYOUT.STATUS;
-  drawPanel(cfg, null, '#2a1a1a');
+  drawPanel(cfg, 'STATUS', '#2a1a1a');
   
   ctx.fillStyle = '#ffaaaa';
   ctx.font = `${cfg.fontSize}px Courier New`;
@@ -281,13 +308,76 @@ function drawStatusPanel() {
   ctx.textAlign = 'left';
 }
 
+function drawUserInputPanel() {
+  const cfg = LAYOUT.USER_INPUT;
+  drawPanel(cfg, 'USER INPUT', '#1a2a1a');
+  
+  ctx.fillStyle = '#aaffaa';
+  ctx.font = `bold ${cfg.fontSize}px Courier New`;
+  
+  let y = cfg.y + cfg.padding + 40;
+  const maxWidth = cfg.width - (cfg.padding * 2);
+  
+  const lines = wrapText(panelContent.userInput || '(waiting for speech...)', maxWidth);
+  for (const line of lines) {
+    if (y + cfg.lineHeight > cfg.y + cfg.height - cfg.padding) break;
+    ctx.fillText(line, cfg.x + cfg.padding, y);
+    y += cfg.lineHeight;
+  }
+}
+
+function drawSystemInfoPanel() {
+  const cfg = LAYOUT.SYSTEM_INFO;
+  drawPanel(cfg, 'SYSTEM INFO (read-only)', '#2a2a1a');
+  
+  ctx.fillStyle = '#888888';
+  ctx.font = `${cfg.fontSize}px Courier New`;
+  
+  let y = cfg.y + cfg.padding + 30;
+  const maxWidth = cfg.width - (cfg.padding * 2);
+  
+  // Model string
+  ctx.fillStyle = '#ffaa88';
+  ctx.font = `bold ${cfg.fontSize + 1}px Courier New`;
+  ctx.fillText('MODEL:', cfg.x + cfg.padding, y);
+  y += cfg.lineHeight + 5;
+  
+  ctx.fillStyle = '#aaaaaa';
+  ctx.font = `${cfg.fontSize}px Courier New`;
+  const modelLines = wrapText(panelContent.systemInfo.modelString, maxWidth);
+  for (const line of modelLines) {
+    if (y + cfg.lineHeight > cfg.y + cfg.height - cfg.padding) break;
+    ctx.fillText(line, cfg.x + cfg.padding, y);
+    y += cfg.lineHeight;
+  }
+  
+  y += 15;
+  
+  // System prompt
+  ctx.fillStyle = '#ffaa88';
+  ctx.font = `bold ${cfg.fontSize + 1}px Courier New`;
+  ctx.fillText('SYSTEM PROMPT:', cfg.x + cfg.padding, y);
+  y += cfg.lineHeight + 5;
+  
+  ctx.fillStyle = '#888888';
+  ctx.font = `${cfg.fontSize}px Courier New`;
+  const promptLines = wrapText(panelContent.systemInfo.systemPrompt, maxWidth);
+  for (const line of promptLines) {
+    if (y + cfg.lineHeight > cfg.y + cfg.height - cfg.padding) break;
+    ctx.fillText(line, cfg.x + cfg.padding, y);
+    y += cfg.lineHeight;
+  }
+}
+
 function render() {
   clearCanvas();
   drawMemoryPanel();
   drawThoughtsPanel();
   drawStatsPanel();
   drawAvatarPanel();
+  drawUserInputPanel();
   drawFreeDrawPanel();
+  drawSystemInfoPanel();
   drawStatusPanel();
 }
 

@@ -31,6 +31,29 @@ interface DrawCommand {
   [key: string]: any;
 }
 
+// Model configuration - visible on canvas
+const MODEL_STRING = 'claude-sonnet-4-5-20250929';
+const SYSTEM_PROMPT = `You are an AI with visual memory and a structured UI for expression.
+
+Everything you know is what you see in the canvas images. You have no other context.
+
+Your UI panels:
+- MEMORIES: Persistent memories you want to keep
+- THOUGHTS: Your current thinking process (visible to user)
+- FREE DRAW: Canvas for visual expression via draw commands
+- AVATAR: Your visual representation
+- USER INPUT: What the human just said (you see this in the image)
+- SYSTEM INFO: Model name and this prompt (read-only, visible to both)
+
+Respond with JSON:
+{
+  "memories": ["memory text..."],
+  "thoughts": "your current thoughts...",
+  "freeDrawCommands": [{"type": "circle", "x": 100, "y": 100, "radius": 50, "color": "#ff0000"}],
+  "statusMessage": "status text...",
+  "spokenResponse": "what you want to say to the user"
+}`;
+
 interface PanelContent {
   memories: string[];
   thoughts: string;
@@ -42,6 +65,11 @@ interface PanelContent {
   avatar: AvatarState;
   freeDrawCommands: DrawCommand[];
   statusMessage: string;
+  userInput: string; // Last thing user said - displayed on canvas
+  systemInfo: {
+    modelString: string;
+    systemPrompt: string;
+  };
 }
 
 let panelContent: PanelContent = {
@@ -57,12 +85,16 @@ let panelContent: PanelContent = {
     state: 'idle'
   },
   freeDrawCommands: [],
-  statusMessage: 'Waiting for input...'
+  statusMessage: 'Waiting for input...',
+  userInput: '',
+  systemInfo: {
+    modelString: MODEL_STRING,
+    systemPrompt: SYSTEM_PROMPT
+  }
 };
 
 let snapshots: string[] = [];
 const MAX_SNAPSHOTS = 5;
-let conversationHistory: any[] = [];
 
 // Routes
 app.get('/api/content', (req: Request, res: Response) => {
@@ -99,40 +131,22 @@ app.post('/api/process-input', async (req: Request, res: Response) => {
   }
   
   try {
-    // Update avatar state
+    // Update user input on canvas (so Claude can see it)
+    panelContent.userInput = userInput;
     panelContent.avatar.state = 'thinking';
     panelContent.statusMessage = 'Processing...';
     panelContent.stats.iteration += 1;
     
-    // Build message with snapshots
+    // Build message with ONLY system prompt and images
+    // No conversation history, no text input - Claude only sees what's on the canvas
     const messageContent: any[] = [
       {
         type: 'text',
-        text: `You are an AI with visual memory and a structured UI for expression.
-
-Your UI has these panels:
-- MEMORIES: Persistent memories you want to keep
-- THOUGHTS: Your current thinking process (visible to user)
-- FREE DRAW: Canvas for visual expression via draw commands
-- AVATAR: Your visual representation
-- STATS: Iteration count, tokens used, context level
-
-User said: "${userInput}"
-
-${snapshots.length > 0 ? `Here are the last ${snapshots.length} UI states:` : 'No previous snapshots available yet.'}
-
-Please respond with JSON in this format:
-{
-  "memories": ["memory text..."],
-  "thoughts": "your current thoughts...",
-  "freeDrawCommands": [{"type": "circle", "x": 100, "y": 100, "radius": 50, "color": "#ff0000"}],
-  "statusMessage": "status text...",
-  "spokenResponse": "what you want to say to the user"
-}`
+        text: SYSTEM_PROMPT
       }
     ];
     
-    // Add snapshots as images
+    // Add snapshots as images (Claude sees the canvas with user input on it)
     for (let i = 0; i < Math.min(snapshots.length, 3); i++) {
       const snapshot = snapshots[i];
       if (snapshot.startsWith('data:image')) {
@@ -149,10 +163,9 @@ Please respond with JSON in this format:
     }
     
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: MODEL_STRING,
       max_tokens: 2048,
       messages: [
-        ...conversationHistory,
         {
           role: 'user',
           content: messageContent
@@ -185,19 +198,10 @@ Please respond with JSON in this format:
     if (updates.statusMessage) panelContent.statusMessage = updates.statusMessage;
     
     // Update stats
+    const maxContextTokens = 200000; // Claude Sonnet 4.5 has 200k context window
     panelContent.stats.tokensUsed += response.usage.input_tokens + response.usage.output_tokens;
+    panelContent.stats.contextLevel = response.usage.input_tokens / maxContextTokens;
     panelContent.avatar.state = 'speaking';
-    
-    // Add to conversation history
-    conversationHistory.push(
-      { role: 'user', content: userInput },
-      { role: 'assistant', content: responseText }
-    );
-    
-    // Keep history manageable
-    if (conversationHistory.length > 20) {
-      conversationHistory = conversationHistory.slice(-20);
-    }
     
     res.json({
       success: true,
