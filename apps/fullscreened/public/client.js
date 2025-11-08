@@ -71,9 +71,9 @@ const LAYOUT = {
   
   FREE_DRAW: {
     x: 100,
-    y: 700,
+    y: 800,
     width: 1400,
-    height: 300,
+    height: 200,
     padding: 10
   },
   
@@ -100,9 +100,9 @@ const LAYOUT = {
   
   SYSTEM_INFO: {
     x: 1520,
-    y: 700,
+    y: 650,
     width: 350,
-    height: 330,
+    height: 400,
     padding: 15,
     lineHeight: 16,
     fontSize: 10
