@@ -60,7 +60,7 @@ const LAYOUT = {
   
   // MIDDLE RING - Your expression
   MODEL_RESPONSE: {
-    x: 750,
+    x: 360,
     y: 50,
     width: 420,
     height: 200,
