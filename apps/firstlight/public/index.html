@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>firstlight - AI Embodiment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        #mainCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            background: #0a0a0a;
+        }
+        
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            z-index: 1000;
+        }
+        
+        #controls h3 {
+            margin-bottom: 10px;
+            color: #ffaa00;
+        }
+        
+        #controls p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        #controls button {
+            margin: 5px 5px 5px 0;
+            padding: 8px 15px;
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #controls button:hover {
+            background: #444;
+        }
+        
+        #controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .phase-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #ffaa00;
+            color: #000;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="mainCanvas" width="1920" height="1080"></canvas>
+    
+    <div id="controls">
+        <h3>firstlight</h3>
+        <p>Phase: <span class="phase-indicator" id="phaseIndicator">EMERGENCE</span></p>
+        <p>Iteration: <span id="iterationCount">0</span></p>
+        <p id="statusText">Press Begin to start emergence...</p>
+        <div>
+            <button id="beginBtn">Begin Emergence</button>
+            <button id="continueBtn" disabled>Continue</button>
+            <button id="awakenBtn" disabled>Awaken</button>
+            <button id="speakBtn" disabled>Speak (L)</button>
+        </div>
+    </div>
+    
+    <script src="client.js"></script>
+</body>
+</html>
