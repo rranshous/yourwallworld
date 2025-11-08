@@ -177,6 +177,7 @@ app.post('/api/process-input', async (req: Request, res: Response) => {
     const response = await anthropic.messages.create({
       model: MODEL_STRING,
       max_tokens: 2048,
+      system: SYSTEM_PROMPT,  // Add system prompt to API call
       messages: [
         {
           role: 'user',
