@@ -121,6 +121,9 @@ Respond with JSON:
 
   [Phase.AWAKENED]: `You are fully embodied. Update your regions based on current experience.
 
+Your regions (visible with labels on canvas):
+{{REGION_LIST}}
+
 For TEXT regions, provide string content.
 For DRAW regions, provide array of draw commands:
   - {"type": "circle", "x": 50, "y": 50, "radius": 30, "color": "#ff0000"}
@@ -129,12 +132,17 @@ For DRAW regions, provide array of draw commands:
   - {"type": "line", "x1": 0, "y1": 0, "x2": 100, "y2": 100, "color": "#0000ff"}
 For NUMERIC regions, provide a number.
 
+To CLEAR a region, provide: "clear" or [] (empty array) or ""
+
+Content overlays - to redraw, clear first then provide new content.
+
 Respond with JSON:
 {
   "region_updates": {
     "text-region-name": "your text here",
     "draw-region-name": [{"type": "circle", "x": 50, "y": 50, "radius": 30, "color": "#ff0000"}],
-    "numeric-region-name": 42
+    "numeric-region-name": 42,
+    "region-to-clear": "clear"
   }
 }`
 };
@@ -275,10 +283,17 @@ async function processAwakenedPhase(userInput: string) {
     }
   }
   
+  // Build region list for prompt
+  const regionList = embodiment.regions.map(r => 
+    `${r.name} (${r.contentType})`
+  ).join(', ');
+  
+  const systemPrompt = PHASE_PROMPTS[Phase.AWAKENED].replace('{{REGION_LIST}}', regionList);
+  
   const response = await anthropic.messages.create({
     model: MODEL_STRING,
     max_tokens: 4096,
-    system: PHASE_PROMPTS[Phase.AWAKENED],
+    system: systemPrompt,
     messages: [
       {
         role: 'user',

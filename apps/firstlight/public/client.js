@@ -78,20 +78,17 @@ function renderFullEmbodiment() {
   embodimentState.regions.forEach(region => {
     if (!region.x) return;
     
-    // Draw region background
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(region.x, region.y, region.width, region.height);
-    
+    // Draw region border (no background)
     ctx.strokeStyle = '#555';
     ctx.lineWidth = 2;
     ctx.strokeRect(region.x, region.y, region.width, region.height);
     
-    // Draw region label
+    // Draw region label - ALWAYS on top, never obscured
     ctx.fillStyle = '#888';
     ctx.font = 'bold 12px Courier New';
     ctx.fillText(region.name, region.x + 10, region.y + 20);
     
-    // Draw visual form
+    // Draw visual form (from Phase 3)
     if (region.visualForm && region.visualForm.length > 0) {
       ctx.save();
       ctx.translate(region.x, region.y);
@@ -103,49 +100,55 @@ function renderFullEmbodiment() {
       ctx.restore();
     }
     
-    // Draw content (awakened phase)
+    // Draw content (awakened phase) - this replaces/overlays visual form
     if (region.content !== undefined && region.content !== null) {
-      ctx.save();
-      ctx.translate(region.x, region.y);
-      
-      if (region.contentType === 'text') {
-        ctx.fillStyle = '#fff';
-        ctx.font = '14px Courier New';
+      // Check if content is explicitly "clear" or empty to skip rendering
+      if (region.content === 'clear' || region.content === '' || 
+          (Array.isArray(region.content) && region.content.length === 0)) {
+        // Don't render anything - section is cleared
+      } else {
+        ctx.save();
+        ctx.translate(region.x, region.y);
         
-        // Handle both string and object content
-        let textContent = region.content;
-        if (typeof textContent === 'object' && !Array.isArray(textContent)) {
-          textContent = JSON.stringify(textContent, null, 2);
-        } else if (Array.isArray(textContent)) {
-          // If it's an array but contentType is text, stringify it
-          textContent = JSON.stringify(textContent, null, 2);
+        if (region.contentType === 'text') {
+          ctx.fillStyle = '#fff';
+          ctx.font = '14px Courier New';
+          
+          // Handle both string and object content
+          let textContent = region.content;
+          if (typeof textContent === 'object' && !Array.isArray(textContent)) {
+            textContent = JSON.stringify(textContent, null, 2);
+          } else if (Array.isArray(textContent)) {
+            // If it's an array but contentType is text, stringify it
+            textContent = JSON.stringify(textContent, null, 2);
+          }
+          
+          const lines = wrapText(String(textContent), region.width - 20);
+          let y = 50;
+          lines.forEach(line => {
+            if (y < region.height - 10) {
+              ctx.fillText(line, 10, y);
+              y += 20;
+            }
+          });
+        } else if (region.contentType === 'draw') {
+          // Ensure content is an array of draw commands
+          const commands = Array.isArray(region.content) ? region.content : [];
+          commands.forEach(cmd => {
+            if (cmd && typeof cmd === 'object' && cmd.type) {
+              executeDrawCommand(cmd);
+            }
+          });
+        } else if (region.contentType === 'numeric') {
+          ctx.fillStyle = '#ffaa00';
+          ctx.font = 'bold 24px Courier New';
+          ctx.textAlign = 'center';
+          ctx.fillText(String(region.content), region.width / 2, region.height / 2);
+          ctx.textAlign = 'left';
         }
         
-        const lines = wrapText(String(textContent), region.width - 20);
-        let y = 50;
-        lines.forEach(line => {
-          if (y < region.height - 10) {
-            ctx.fillText(line, 10, y);
-            y += 20;
-          }
-        });
-      } else if (region.contentType === 'draw') {
-        // Ensure content is an array of draw commands
-        const commands = Array.isArray(region.content) ? region.content : [];
-        commands.forEach(cmd => {
-          if (cmd && typeof cmd === 'object' && cmd.type) {
-            executeDrawCommand(cmd);
-          }
-        });
-      } else if (region.contentType === 'numeric') {
-        ctx.fillStyle = '#ffaa00';
-        ctx.font = 'bold 24px Courier New';
-        ctx.textAlign = 'center';
-        ctx.fillText(String(region.content), region.width / 2, region.height / 2);
-        ctx.textAlign = 'left';
+        ctx.restore();
       }
-      
-      ctx.restore();
     }
   });
   
@@ -159,7 +162,12 @@ function renderFullEmbodiment() {
       if (aperture === 'temporal-sense') {
         value = new Date().toLocaleTimeString();
       } else if (aperture === 'iteration-sense') {
-        value = embodimentState.iteration;
+        value = String(embodimentState.iteration);
+      } else if (aperture === 'audio-channel') {
+        value = '[listening...]';
+      } else {
+        // Unknown aperture
+        value = '[not connected]';
       }
       ctx.fillText(`${aperture}: ${value}`, 20, y);
       y += 25;
