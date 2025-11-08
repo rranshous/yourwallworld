@@ -51,7 +51,7 @@ const LAYOUT = {
   
   STATUS: {
     x: 1040,
-    y: 320,
+    y: 400,
     width: 280,
     height: 120,
     padding: 15,
@@ -72,7 +72,7 @@ const LAYOUT = {
   FREE_DRAW: {
     x: 100,
     y: 700,
-    width: 1720,
+    width: 1400,
     height: 300,
     padding: 10
   },
