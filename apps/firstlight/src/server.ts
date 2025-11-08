@@ -206,7 +206,7 @@ async function processDefinitionPhase(userInput: string) {
   
   const response = await anthropic.messages.create({
     model: MODEL_STRING,
-    max_tokens: 2048,
+    max_tokens: 4096,
     system: systemPrompt,
     messages: [
       {
@@ -276,7 +276,7 @@ async function processAwakenedPhase(userInput: string) {
   
   const response = await anthropic.messages.create({
     model: MODEL_STRING,
-    max_tokens: 2048,
+    max_tokens: 4096,
     system: PHASE_PROMPTS[Phase.AWAKENED],
     messages: [
       {
