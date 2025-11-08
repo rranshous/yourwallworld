@@ -108,11 +108,20 @@ function renderFullEmbodiment() {
       if (region.contentType === 'text') {
         ctx.fillStyle = '#fff';
         ctx.font = '14px Courier New';
-        const lines = wrapText(String(region.content), region.width - 20);
+        
+        // Handle both string and object content
+        let textContent = region.content;
+        if (typeof textContent === 'object') {
+          textContent = JSON.stringify(textContent, null, 2);
+        }
+        
+        const lines = wrapText(String(textContent), region.width - 20);
         let y = 50;
         lines.forEach(line => {
-          ctx.fillText(line, 10, y);
-          y += 20;
+          if (y < region.height - 10) {
+            ctx.fillText(line, 10, y);
+            y += 20;
+          }
         });
       } else if (region.contentType === 'draw' && Array.isArray(region.content)) {
         region.content.forEach(cmd => {
@@ -121,7 +130,9 @@ function renderFullEmbodiment() {
       } else if (region.contentType === 'numeric') {
         ctx.fillStyle = '#ffaa00';
         ctx.font = 'bold 24px Courier New';
-        ctx.fillText(String(region.content), region.width / 2 - 20, region.height / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText(String(region.content), region.width / 2, region.height / 2);
+        ctx.textAlign = 'left';
       }
       
       ctx.restore();
