@@ -28,34 +28,34 @@ const LAYOUT = {
   },
   
   // Panel positions within rings
-  // INNER RING - Your consciousness
+  // INNER RING - Your consciousness (closer to eye)
   THOUGHTS: {
-    x: 400,
-    y: 200,
-    width: 300,
-    height: 150,
-    padding: 15,
-    lineHeight: 20,
-    fontSize: 13
-  },
-  
-  MEMORIES: {
-    x: 100,
-    y: 400,
-    width: 300,
-    height: 200,
+    x: 600,
+    y: 320,
+    width: 280,
+    height: 120,
     padding: 15,
     lineHeight: 18,
     fontSize: 12
   },
   
-  STATUS: {
-    x: 1220,
-    y: 200,
-    width: 300,
+  MEMORIES: {
+    x: 350,
+    y: 480,
+    width: 280,
     height: 150,
     padding: 15,
-    fontSize: 14
+    lineHeight: 16,
+    fontSize: 11
+  },
+  
+  STATUS: {
+    x: 1040,
+    y: 320,
+    width: 280,
+    height: 120,
+    padding: 15,
+    fontSize: 13
   },
   
   // MIDDLE RING - Your expression
@@ -137,12 +137,7 @@ function clearCanvas() {
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, LAYOUT.CANVAS_WIDTH, LAYOUT.CANVAS_HEIGHT);
   
-  // Draw "YOUR EMBODIMENT" header
-  ctx.fillStyle = '#ffaa00';
-  ctx.font = 'bold 20px Courier New';
-  ctx.textAlign = 'center';
-  ctx.fillText('═══ YOUR EMBODIMENT ═══', LAYOUT.CENTER_X, 30);
-  ctx.textAlign = 'left';
+  // No header - rings are self-explanatory
 }
 
 function drawConcentricRings() {
