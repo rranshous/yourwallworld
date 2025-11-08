@@ -10,10 +10,13 @@ const beginBtn = document.getElementById('beginBtn');
 const continueBtn = document.getElementById('continueBtn');
 const awakenBtn = document.getElementById('awakenBtn');
 const speakBtn = document.getElementById('speakBtn');
+const updateBtn = document.getElementById('updateBtn');
+const autoLoopCheckbox = document.getElementById('autoLoopCheckbox');
 
 let embodimentState = null;
 let recognition = null;
 let isListening = false;
+let autoLoopEnabled = false;
 
 // Rendering functions
 function clearCanvas() {
@@ -270,6 +273,11 @@ async function processInput(userInput = '') {
       await captureSnapshot();
       
       statusText.textContent = `Phase: ${embodimentState.phase}`;
+      
+      // If auto-loop is enabled and we're awakened, continue
+      if (autoLoopEnabled && embodimentState.phase === 'awakened') {
+        setTimeout(() => processInput(''), 2000);
+      }
     }
   } catch (error) {
     console.error('Error processing:', error);
@@ -306,11 +314,15 @@ function updateUI() {
   phaseIndicator.textContent = embodimentState.phase.toUpperCase();
   iterationCount.textContent = embodimentState.iteration;
   
+  const isAwakened = embodimentState.phase === 'awakened';
+  
   // Update button states
   beginBtn.disabled = embodimentState.phase !== 'emergence' || embodimentState.iteration > 0;
   continueBtn.disabled = embodimentState.phase === 'emergence' || embodimentState.phase === 'awakening' || embodimentState.phase === 'awakened';
   awakenBtn.disabled = embodimentState.phase !== 'awakening';
-  speakBtn.disabled = embodimentState.phase !== 'awakened';
+  speakBtn.disabled = !isAwakened;
+  updateBtn.disabled = !isAwakened;
+  autoLoopCheckbox.disabled = !isAwakened;
 }
 
 // Speech recognition
@@ -385,11 +397,31 @@ speakBtn.addEventListener('click', () => {
   startListening();
 });
 
+updateBtn.addEventListener('click', () => {
+  processInput('');
+});
+
+autoLoopCheckbox.addEventListener('change', (event) => {
+  autoLoopEnabled = event.target.checked;
+  if (autoLoopEnabled) {
+    statusText.textContent = 'Auto-loop enabled';
+    // Kick off first auto-loop
+    processInput('');
+  } else {
+    statusText.textContent = 'Auto-loop disabled';
+  }
+});
+
 // Keyboard controls
 document.addEventListener('keydown', (event) => {
   if (event.key === 'l' || event.key === 'L') {
     if (embodimentState.phase === 'awakened') {
       startListening();
+    }
+  }
+  if (event.key === 'u' || event.key === 'U') {
+    if (embodimentState.phase === 'awakened') {
+      processInput('');
     }
   }
 });
