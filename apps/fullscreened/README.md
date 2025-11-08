@@ -36,17 +36,31 @@ Resume listening
 
 ### The Embodiment (1920x1080 canvas)
 
-The embodiment consists of these visual panels:
+**Concentric Ring Design** - The embodiment uses a radial layout centered on an eye:
 
-1. **MEMORY Panel** (left): Persistent memories the model chooses to keep
-2. **USER INPUT Panel** (top center): What you just said - visible to model
-3. **FREE DRAW Panel** (center): Visual expression via draw commands
-4. **AVATAR Panel** (top right): Visual state indicator (idle/thinking/listening)
-5. **STATS Panel** (top far right): Iteration, tokens, context usage
-6. **THOUGHTS Panel** (right): Current thinking process - transparent to you
-7. **STATUS Panel** (bottom center): System status messages
-8. **MODEL RESPONSE Panel** (bottom center): What the model says - visible to model
-9. **SYSTEM INFO Panel** (bottom right): Model name + system prompt (read-only, visible to both)
+**CENTER: The Eye**
+- Visual representation of the AI's awareness
+- Shows current state (idle/thinking/listening)
+- Surrounded by concentric circles
+
+**INNER RING - Consciousness (Orange)**
+- **THOUGHTS**: Current thinking process
+- **MEMORIES**: Persistent memories (model-controlled)
+- **STATUS**: Current state message (model sets this)
+
+**MIDDLE RING - Expression (Green)**
+- **MODEL RESPONSE**: What the model says to you
+- **FREE DRAW**: Visual expression via draw commands
+
+**OUTER RING - Observation (Blue)**
+- **USER INPUT**: What you just said
+- **STATS**: Iteration, tokens, context usage
+- **SYSTEM INFO**: Model name + system prompt (read-only)
+
+**Key Interaction:**
+- Model **controls**: Memories, Thoughts, Status, Model Response, Free Draw
+- Model **observes**: User Input, Stats, System Info, Avatar state
+- Everything is visible on the canvas - no hidden information
 
 ### Key Features
 
@@ -80,7 +94,15 @@ cp .env.example .env
 npm run dev
 ```
 
-Open http://localhost:3000 in your browser. For best results, run fullscreen on a 1920x1080 display (or project on a wall!).
+## Usage
+
+Press **'L'** to start listening for speech input. The model will:
+1. See your words appear in USER INPUT
+2. Think and respond (updates MODEL RESPONSE, THOUGHTS, etc.)
+3. Wait for you to press 'L' again
+
+Press **'C'** to clear free draw commands.
+Press **'S'** to manually capture a snapshot (debugging).
 
 ## API Endpoints
 

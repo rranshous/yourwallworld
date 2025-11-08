@@ -64,39 +64,60 @@ An interactive wall-mirror feedback loop where Claude's entire state lives on th
 
 ### 🖥️ [fullscreened](./apps/fullscreened)
 
-**Status**: 🚀 Active Development
+**Status**: ✅ Complete (v1) - Pure Visual Embodiment
 
-Evolution of welldown addressing quality and clarity issues. Instead of having Claude reproduce everything from images, we provide a structured UI with panels that Claude populates.
+A pure visual embodiment where Claude exists entirely through a canvas interface. The model receives ONLY images - no hidden conversation history or text prompts.
 
-**Core Interaction Loop:**
-```
-screen update → speech input → model thinking → screen update
-```
+**Concentric Ring Design:**
+- **Center Eye**: AI's visual awareness indicator
+- **Inner Ring** (Consciousness): Thoughts, Memories, Status - what the model controls
+- **Middle Ring** (Expression): Model Response, Free Draw - how the model communicates
+- **Outer Ring** (Observation): User Input, Stats, System Info - what the model perceives
 
-**Key Features:**
-- Direct canvas screenshots (1920x1080) - no quality loss
-- Structured UI with 6 panels: Memory, Thoughts, Stats, Avatar, Free Draw, Status
-- Speech recognition for natural interaction
-- Visual feedback with up to 3 previous snapshots
-- Model's thinking process visible on screen
-- Both human and AI "see" the same UI (projection-ready)
+**Core Concept:**
+- Model sees only canvas screenshots (up to 3 previous states)
+- Everything exists on the visual embodiment - no privileged information
+- Model controls: Memories, Thoughts, Status, Response, Free Draw
+- Model observes: User Input, Stats, System Info, Avatar state
+- Press 'L' to speak, model responds visually
 
-**Improvements over welldown:**
-- ✅ High quality visual feedback (canvas screenshots vs projector→webcam)
-- ✅ Clear content ownership through structured updates
-- ✅ Incremental building on previous states via API
-- ✅ Explicit thinking display for transparency
-- ✅ Persistent memory system
+**Key Learnings:**
+- ✅ Pure visual embodiment works - model can understand and maintain state
+- ✅ Concentric rings convey self→world information flow intuitively
+- ✅ Model-controlled STATUS panel helps model express internal state
+- ✅ Separating control vs observation regions clarifies embodiment agency
+- ✅ System prompt works better in API call than only on canvas
+- ✅ Visual memory through snapshots enables coherent multi-turn interaction
 
 [Explore fullscreened →](./apps/fullscreened)
 
+### 🌅 [firstlight](./apps/firstlight)
+
+**Status**: 🚧 In Development
+
+The next evolution: Let the AI **define its own embodiment structure** before experiencing it.
+
+**Phase 1-3** (Text-based): Model defines regions, spatial layout, and visual forms
+**Phase 4** (Awakening): First visual experience - "This is you"
+**Phase 5** (Awakened): Pure visual loop like fullscreened
+
+**Core Questions:**
+- What cognitive structures do models naturally create?
+- Can self-definition lead to better embodiment understanding?
+- Will different models create different embodiment types?
+
+The "firstlight" moment is when the model first sees the embodiment it has defined - the dawn of self-awareness through visual recognition.
+
+[Explore firstlight →](./apps/firstlight)
+
 ## Coming Next
 
-Ideas for future experiments:
-- **Interactive Wall**: Real-time webcam feedback for physical presence
-- **State Persistence**: Claude maintaining memory across sessions
-- **Multi-modal Interaction**: Combining visual, audio, and text
-- **Collaborative Space**: Multiple AI agents sharing wall space
+Future experiment ideas:
+- **Multi-Embodiment System**: Switch between different AI personalities/embodiments
+- **Embodiment Evolution**: Allow models to slowly restructure their form
+- **Comparative Studies**: Multiple models with same embodiment structure
+- **Multi-modal Apertures**: Vision, sound, touch as optional sensors
+- **Embodiment Persistence**: Long-term memory and identity across sessions
 
 ## Philosophy
 
