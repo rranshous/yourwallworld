@@ -120,10 +120,20 @@ Respond with JSON:
 
   [Phase.AWAKENED]: `You are fully embodied. Update your regions based on current experience.
 
+For TEXT regions, provide string content.
+For DRAW regions, provide array of draw commands:
+  - {"type": "circle", "x": 50, "y": 50, "radius": 30, "color": "#ff0000"}
+  - {"type": "rect", "x": 0, "y": 0, "width": 100, "height": 100, "color": "#00ff00", "fill": true}
+  - {"type": "text", "text": "HELLO", "x": 50, "y": 50, "color": "#ffffff"}
+  - {"type": "line", "x1": 0, "y1": 0, "x2": 100, "y2": 100, "color": "#0000ff"}
+For NUMERIC regions, provide a number.
+
 Respond with JSON:
 {
   "region_updates": {
-    "region-name": "content for text regions" or [draw commands] or numeric value
+    "text-region-name": "your text here",
+    "draw-region-name": [{"type": "circle", "x": 50, "y": 50, "radius": 30, "color": "#ff0000"}],
+    "numeric-region-name": 42
   }
 }`
 };
