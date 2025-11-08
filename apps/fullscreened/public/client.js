@@ -3,104 +3,109 @@
 const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext('2d');
 
-// Panel layout configuration (1920x1080)
+// Panel layout configuration (1920x1080) - Concentric ring design
 const LAYOUT = {
   CANVAS_WIDTH: 1920,
   CANVAS_HEIGHT: 1080,
-  HEADER_HEIGHT: 70, // Space for embodiment header
+  CENTER_X: 960,  // Center of canvas
+  CENTER_Y: 540,
   
-  // Left column: Memory panel (vertical)
-  MEMORY: {
-    x: 0,
-    y: 70,
-    width: 350,
-    height: 1010,
-    padding: 20,
-    lineHeight: 30,
-    fontSize: 16
-  },
-  
-  // Center top: User Input (what human just said)
-  USER_INPUT: {
-    x: 350,
-    y: 70,
-    width: 570,
-    height: 130,
-    padding: 15,
-    lineHeight: 24,
-    fontSize: 18
-  },
-  
-  // Center: Free draw area
-  FREE_DRAW: {
-    x: 350,
-    y: 200,
-    width: 570,
-    height: 480,
-    padding: 10
-  },
-  
-  // Top right: Avatar
+  // Central eye/avatar
   AVATAR: {
-    x: 920,
-    y: 70,
-    width: 200,
-    height: 130,
-    padding: 10
+    centerX: 960,
+    centerY: 540,
+    radius: 80
   },
   
-  // Top far right: Stats
-  STATS: {
-    x: 1120,
-    y: 70,
-    width: 200,
-    height: 130,
+  // Ring boundaries (radii from center)
+  RINGS: {
+    INNER_START: 150,    // Inner ring starts here
+    INNER_END: 300,      // Inner ring ends here
+    MIDDLE_START: 320,   // Middle ring starts here
+    MIDDLE_END: 480,     // Middle ring ends here
+    OUTER_START: 500,    // Outer ring starts here
+    OUTER_END: 650       // Outer ring ends here
+  },
+  
+  // Panel positions within rings
+  // INNER RING - Your consciousness
+  THOUGHTS: {
+    x: 400,
+    y: 200,
+    width: 300,
+    height: 150,
     padding: 15,
-    lineHeight: 22,
+    lineHeight: 20,
     fontSize: 13
   },
   
-  // Right column: Thoughts
-  THOUGHTS: {
-    x: 1320,
-    y: 70,
-    width: 600,
-    height: 505,
-    padding: 20,
-    lineHeight: 24,
-    fontSize: 15
-  },
-  
-  // Bottom right below thoughts: System Info (compact)
-  SYSTEM_INFO: {
-    x: 1320,
-    y: 575,
-    width: 600,
-    height: 505,
+  MEMORIES: {
+    x: 100,
+    y: 400,
+    width: 300,
+    height: 200,
     padding: 15,
-    lineHeight: 16,
-    fontSize: 10
+    lineHeight: 18,
+    fontSize: 12
   },
   
-  // Bottom center: Status
   STATUS: {
-    x: 350,
-    y: 680,
-    width: 570,
-    height: 80,
+    x: 1220,
+    y: 200,
+    width: 300,
+    height: 150,
     padding: 15,
     fontSize: 14
   },
   
-  // Center right: Model Response (large space for full responses)
+  // MIDDLE RING - Your expression
   MODEL_RESPONSE: {
-    x: 920,
-    y: 200,
-    width: 400,
-    height: 880,
+    x: 750,
+    y: 50,
+    width: 420,
+    height: 200,
     padding: 15,
     lineHeight: 18,
     fontSize: 12
+  },
+  
+  FREE_DRAW: {
+    x: 100,
+    y: 700,
+    width: 1720,
+    height: 300,
+    padding: 10
+  },
+  
+  // OUTER RING - What you observe
+  USER_INPUT: {
+    x: 50,
+    y: 50,
+    width: 300,
+    height: 120,
+    padding: 15,
+    lineHeight: 20,
+    fontSize: 14
+  },
+  
+  STATS: {
+    x: 1570,
+    y: 50,
+    width: 300,
+    height: 120,
+    padding: 15,
+    lineHeight: 20,
+    fontSize: 12
+  },
+  
+  SYSTEM_INFO: {
+    x: 1520,
+    y: 700,
+    width: 350,
+    height: 330,
+    padding: 15,
+    lineHeight: 16,
+    fontSize: 10
   }
 };
 
@@ -132,34 +137,132 @@ function clearCanvas() {
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, LAYOUT.CANVAS_WIDTH, LAYOUT.CANVAS_HEIGHT);
   
-  // Draw "YOUR EMBODIMENT" header at the very top
+  // Draw "YOUR EMBODIMENT" header
   ctx.fillStyle = '#ffaa00';
-  ctx.font = 'bold 24px Courier New';
+  ctx.font = 'bold 20px Courier New';
   ctx.textAlign = 'center';
-  ctx.fillText('═══ YOUR EMBODIMENT ═══', LAYOUT.CANVAS_WIDTH / 2, 30);
+  ctx.fillText('═══ YOUR EMBODIMENT ═══', LAYOUT.CENTER_X, 30);
   ctx.textAlign = 'left';
+}
+
+function drawConcentricRings() {
+  const cx = LAYOUT.CENTER_X;
+  const cy = LAYOUT.CENTER_Y;
   
-  ctx.fillStyle = '#888';
-  ctx.font = '12px Courier New';
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 3;
+  
+  // Draw ring boundaries
+  // Inner ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, LAYOUT.RINGS.INNER_START, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.arc(cx, cy, LAYOUT.RINGS.INNER_END, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Middle ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, LAYOUT.RINGS.MIDDLE_START, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.arc(cx, cy, LAYOUT.RINGS.MIDDLE_END, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, LAYOUT.RINGS.OUTER_START, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.arc(cx, cy, LAYOUT.RINGS.OUTER_END, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Add ring labels
+  ctx.fillStyle = '#666';
+  ctx.font = 'bold 12px Courier New';
   ctx.textAlign = 'center';
-  ctx.fillText('This visual interface IS you. The you which changes and persists.', LAYOUT.CANVAS_WIDTH / 2, 50);
+  
+  // Outer ring label
+  ctx.fillText('OUTER - OBSERVE', cx, cy - LAYOUT.RINGS.OUTER_START - 15);
+  
+  // Middle ring label
+  ctx.fillText('MIDDLE - EXPRESS', cx, cy - LAYOUT.RINGS.MIDDLE_START - 15);
+  
+  // Inner ring label
+  ctx.fillText('INNER - CONSCIOUSNESS', cx, cy - LAYOUT.RINGS.INNER_START - 15);
+  
+  ctx.textAlign = 'left';
+}
+
+function drawCentralEye() {
+  const cx = LAYOUT.AVATAR.centerX;
+  const cy = LAYOUT.AVATAR.centerY;
+  const radius = LAYOUT.AVATAR.radius;
+  
+  // Outer eye (sclera)
+  ctx.fillStyle = '#f0f0f0';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Iris
+  ctx.fillStyle = panelContent.avatar.color || '#4A9EFF';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius * 0.6, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Pupil
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Highlight
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(cx - radius * 0.1, cy - radius * 0.1, radius * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Add concentric circles around eye
+  ctx.strokeStyle = panelContent.avatar.color || '#4A9EFF';
+  ctx.lineWidth = 2;
+  
+  for (let i = 1; i <= 3; i++) {
+    ctx.globalAlpha = 0.3 / i;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius + (i * 15), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
+  ctx.globalAlpha = 1.0;
+  
+  // State indicator
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText(panelContent.avatar.state.toUpperCase(), cx, cy + radius + 20);
   ctx.textAlign = 'left';
 }
 
 function drawPanel(config, title, bgColor = '#1a1a1a') {
-  // Panel background
+  // Panel background with semi-transparency to see rings
+  ctx.globalAlpha = 0.9;
   ctx.fillStyle = bgColor;
   ctx.fillRect(config.x, config.y, config.width, config.height);
+  ctx.globalAlpha = 1.0;
   
   // Panel border
-  ctx.strokeStyle = '#333';
+  ctx.strokeStyle = '#555';
   ctx.lineWidth = 2;
   ctx.strokeRect(config.x, config.y, config.width, config.height);
   
   // Panel title
   if (title) {
-    ctx.fillStyle = '#666';
-    ctx.font = 'bold 14px Courier New';
+    ctx.fillStyle = '#888';
+    ctx.font = 'bold 12px Courier New';
     ctx.fillText(title, config.x + config.padding, config.y + 20);
   }
 }
@@ -189,34 +292,34 @@ function wrapText(text, maxWidth) {
 }
 
 function drawMemoryPanel() {
-  const cfg = LAYOUT.MEMORY;
-  drawPanel(cfg, 'MEMORIES', '#1a1a2e');
+  const cfg = LAYOUT.MEMORIES;
+  drawPanel(cfg, 'MEMORIES', '#2e1a1a');
   
-  ctx.fillStyle = '#88ccff';
+  ctx.fillStyle = '#ffaa88';
   ctx.font = `${cfg.fontSize}px Courier New`;
   
-  let y = cfg.y + cfg.padding + 40;
+  let y = cfg.y + cfg.padding + 30;
   const maxWidth = cfg.width - (cfg.padding * 2);
   
-  for (const memory of panelContent.memories.slice(-15)) { // Last 15 memories
+  for (const memory of panelContent.memories.slice(-10)) { // Last 10 memories
     const lines = wrapText(memory, maxWidth);
     for (const line of lines) {
       if (y + cfg.lineHeight > cfg.y + cfg.height - cfg.padding) break;
       ctx.fillText(line, cfg.x + cfg.padding, y);
       y += cfg.lineHeight;
     }
-    y += 10; // Space between memories
+    y += 8; // Space between memories
   }
 }
 
 function drawThoughtsPanel() {
   const cfg = LAYOUT.THOUGHTS;
-  drawPanel(cfg, 'THOUGHTS', '#1a1a2e');
+  drawPanel(cfg, 'THOUGHTS', '#2e1a1a');
   
   ctx.fillStyle = '#ffcc88';
   ctx.font = `${cfg.fontSize}px Courier New`;
   
-  let y = cfg.y + cfg.padding + 40;
+  let y = cfg.y + cfg.padding + 30;
   const maxWidth = cfg.width - (cfg.padding * 2);
   
   const lines = wrapText(panelContent.thoughts, maxWidth);
@@ -229,13 +332,13 @@ function drawThoughtsPanel() {
 
 function drawStatsPanel() {
   const cfg = LAYOUT.STATS;
-  drawPanel(cfg, 'STATS', '#1a1a2e');
+  drawPanel(cfg, 'STATS', '#1a2e1a');
   
   ctx.fillStyle = '#aaffaa';
   ctx.font = `${cfg.fontSize}px Courier New`;
   
   const stats = panelContent.stats;
-  let y = cfg.y + cfg.padding + 40;
+  let y = cfg.y + cfg.padding + 30;
   
   ctx.fillText(`Iteration: ${stats.iteration}`, cfg.x + cfg.padding, y);
   y += cfg.lineHeight;
@@ -244,38 +347,7 @@ function drawStatsPanel() {
   ctx.fillText(`Context: ${(stats.contextLevel * 100).toFixed(1)}%`, cfg.x + cfg.padding, y);
 }
 
-function drawAvatarPanel() {
-  const cfg = LAYOUT.AVATAR;
-  drawPanel(cfg, 'AVATAR', '#1a1a2e');
-  
-  const centerX = cfg.x + cfg.width / 2;
-  const centerY = cfg.y + cfg.height / 2 + 5;
-  const radius = 35; // Smaller for reduced height
-  
-  // Simple circular avatar
-  ctx.fillStyle = panelContent.avatar.color;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // State indicator
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 10px Courier New';
-  ctx.textAlign = 'center';
-  ctx.fillText(panelContent.avatar.state.toUpperCase(), centerX, cfg.y + cfg.height - 15);
-  ctx.textAlign = 'left';
-  
-  // Pulse effect for thinking/speaking
-  if (panelContent.avatar.state === 'thinking' || panelContent.avatar.state === 'speaking') {
-    ctx.strokeStyle = panelContent.avatar.color;
-    ctx.lineWidth = 3;
-    ctx.globalAlpha = 0.5;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius + 8, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1.0;
-  }
-}
+// drawAvatarPanel removed - now using drawCentralEye() for concentric design
 
 function drawFreeDrawPanel() {
   const cfg = LAYOUT.FREE_DRAW;
@@ -325,7 +397,7 @@ function executeDrawCommand(cmd) {
 
 function drawStatusPanel() {
   const cfg = LAYOUT.STATUS;
-  drawPanel(cfg, 'STATUS', '#2a1a1a');
+  drawPanel(cfg, 'STATUS', '#2e1a1a');  // Orange - inner consciousness
   
   ctx.fillStyle = '#ffaaaa';
   ctx.font = `${cfg.fontSize}px Courier New`;
@@ -336,7 +408,7 @@ function drawStatusPanel() {
 
 function drawUserInputPanel() {
   const cfg = LAYOUT.USER_INPUT;
-  drawPanel(cfg, 'USER INPUT', '#1a2a1a');
+  drawPanel(cfg, 'USER INPUT', '#1a1a2e');  // Blue - observe
   
   ctx.fillStyle = '#aaffaa';
   ctx.font = `bold ${cfg.fontSize}px Courier New`;
@@ -354,7 +426,7 @@ function drawUserInputPanel() {
 
 function drawSystemInfoPanel() {
   const cfg = LAYOUT.SYSTEM_INFO;
-  drawPanel(cfg, 'SYSTEM INFO (read-only)', '#2a2a1a');
+  drawPanel(cfg, 'SYSTEM INFO (read-only)', '#1a1a2e');  // Blue - observe
   
   ctx.fillStyle = '#888888';
   ctx.font = `${cfg.fontSize}px Courier New`;
@@ -397,7 +469,7 @@ function drawSystemInfoPanel() {
 
 function drawModelResponsePanel() {
   const cfg = LAYOUT.MODEL_RESPONSE;
-  drawPanel(cfg, 'MODEL RESPONSE', '#2a1a2a');
+  drawPanel(cfg, 'MODEL RESPONSE', '#1a2e1a');  // Green - express
   
   ctx.fillStyle = '#ffaaff';
   ctx.font = `${cfg.fontSize}px Courier New`;
@@ -415,10 +487,17 @@ function drawModelResponsePanel() {
 
 function render() {
   clearCanvas();
+  
+  // Draw concentric ring structure first
+  drawConcentricRings();
+  
+  // Draw central eye
+  drawCentralEye();
+  
+  // Draw all content panels on top
   drawMemoryPanel();
   drawThoughtsPanel();
   drawStatsPanel();
-  drawAvatarPanel();
   drawUserInputPanel();
   drawFreeDrawPanel();
   drawSystemInfoPanel();
