@@ -114,7 +114,10 @@ function renderFullEmbodiment() {
         
         // Handle both string and object content
         let textContent = region.content;
-        if (typeof textContent === 'object') {
+        if (typeof textContent === 'object' && !Array.isArray(textContent)) {
+          textContent = JSON.stringify(textContent, null, 2);
+        } else if (Array.isArray(textContent)) {
+          // If it's an array but contentType is text, stringify it
           textContent = JSON.stringify(textContent, null, 2);
         }
         
@@ -126,9 +129,13 @@ function renderFullEmbodiment() {
             y += 20;
           }
         });
-      } else if (region.contentType === 'draw' && Array.isArray(region.content)) {
-        region.content.forEach(cmd => {
-          executeDrawCommand(cmd);
+      } else if (region.contentType === 'draw') {
+        // Ensure content is an array of draw commands
+        const commands = Array.isArray(region.content) ? region.content : [];
+        commands.forEach(cmd => {
+          if (cmd && typeof cmd === 'object' && cmd.type) {
+            executeDrawCommand(cmd);
+          }
         });
       } else if (region.contentType === 'numeric') {
         ctx.fillStyle = '#ffaa00';
