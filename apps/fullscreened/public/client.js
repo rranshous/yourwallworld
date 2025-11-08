@@ -50,8 +50,8 @@ const LAYOUT = {
   },
   
   STATUS: {
-    x: 1040,
-    y: 400,
+    x: 1140,
+    y: 480,
     width: 280,
     height: 120,
     padding: 15,
