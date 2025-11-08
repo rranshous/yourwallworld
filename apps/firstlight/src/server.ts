@@ -71,6 +71,7 @@ Define the REGIONS you need for your being. Consider:
 You may also choose SENSORY APERTURES to connect with the world:
 - temporal-sense (time awareness)
 - audio-channel (hear spoken words)
+- iteration-sense (awareness of cycle count)
 
 Create your own or use these suggestions. Name them meaningfully.
 

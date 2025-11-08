@@ -158,6 +158,8 @@ function renderFullEmbodiment() {
       let value = '';
       if (aperture === 'temporal-sense') {
         value = new Date().toLocaleTimeString();
+      } else if (aperture === 'iteration-sense') {
+        value = embodimentState.iteration;
       }
       ctx.fillText(`${aperture}: ${value}`, 20, y);
       y += 25;
