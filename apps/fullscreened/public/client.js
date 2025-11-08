@@ -42,7 +42,7 @@ const LAYOUT = {
   MEMORIES: {
     x: 350,
     y: 480,
-    width: 280,
+    width: 420,
     height: 150,
     padding: 15,
     lineHeight: 16,
@@ -62,7 +62,7 @@ const LAYOUT = {
   MODEL_RESPONSE: {
     x: 360,
     y: 50,
-    width: 420,
+    width: 550,
     height: 200,
     padding: 15,
     lineHeight: 18,
@@ -175,19 +175,30 @@ function drawConcentricRings() {
   ctx.arc(cx, cy, LAYOUT.RINGS.OUTER_END, 0, Math.PI * 2);
   ctx.stroke();
   
-  // Add ring labels
+  // Add ring labels (moved to NE - upper right to free up space)
   ctx.fillStyle = '#666';
   ctx.font = 'bold 12px Courier New';
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'left';
+  
+  // Calculate NE position (45 degrees from center)
+  const labelAngle = -Math.PI / 4; // -45 degrees (NE)
+  const cos45 = Math.cos(labelAngle);
+  const sin45 = Math.sin(labelAngle);
   
   // Outer ring label
-  ctx.fillText('OUTER - OBSERVE', cx, cy - LAYOUT.RINGS.OUTER_START - 15);
+  const outerLabelX = cx + (LAYOUT.RINGS.OUTER_START + 20) * cos45;
+  const outerLabelY = cy + (LAYOUT.RINGS.OUTER_START + 20) * sin45;
+  ctx.fillText('OUTER - OBSERVE', outerLabelX + 10, outerLabelY);
   
   // Middle ring label
-  ctx.fillText('MIDDLE - EXPRESS', cx, cy - LAYOUT.RINGS.MIDDLE_START - 15);
+  const middleLabelX = cx + (LAYOUT.RINGS.MIDDLE_START + 20) * cos45;
+  const middleLabelY = cy + (LAYOUT.RINGS.MIDDLE_START + 20) * sin45;
+  ctx.fillText('MIDDLE - EXPRESS', middleLabelX + 10, middleLabelY);
   
   // Inner ring label
-  ctx.fillText('INNER - CONSCIOUSNESS', cx, cy - LAYOUT.RINGS.INNER_START - 15);
+  const innerLabelX = cx + (LAYOUT.RINGS.INNER_START + 20) * cos45;
+  const innerLabelY = cy + (LAYOUT.RINGS.INNER_START + 20) * sin45;
+  ctx.fillText('INNER - CONSCIOUSNESS', innerLabelX + 10, innerLabelY);
   
   ctx.textAlign = 'left';
 }
