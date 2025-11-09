@@ -51,6 +51,7 @@ const currentSizeDisplay = document.getElementById('currentSize');
 const resize2xWidthBtn = document.getElementById('resize2xWidth');
 const resize2xHeightBtn = document.getElementById('resize2xHeight');
 const resize2xBothBtn = document.getElementById('resize2xBoth');
+const resetViewButton = document.getElementById('resetViewButton');
 
 resizeButton.addEventListener('click', () => {
     updateSizeDisplays();
@@ -59,6 +60,14 @@ resizeButton.addEventListener('click', () => {
 
 closeResizeButton.addEventListener('click', () => {
     resizeModal.style.display = 'none';
+});
+
+// Reset viewport button
+resetViewButton.addEventListener('click', () => {
+    viewport.offsetX = 0;
+    viewport.offsetY = 0;
+    viewport.scale = 1.0;
+    renderCanvas();
 });
 
 // Close modal on background click
