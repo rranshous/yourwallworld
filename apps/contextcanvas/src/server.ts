@@ -134,6 +134,16 @@ function renderCanvasOnServer(canvasJSCode: string, width: number, height: numbe
   }
 }
 
+// Redact embedded image data URIs from canvas JS (they can be huge and model doesn't need them)
+function redactImageDataFromJS(js: string): string {
+  // Replace data:image/... base64 strings with a placeholder
+  // Matches: data:image/png;base64,iVBORw0... or data:image/jpeg;base64,/9j/4...
+  return js.replace(
+    /(data:image\/[^;]+;base64,)[A-Za-z0-9+/=]{100,}/g,
+    '$1[REDACTED_IMAGE_DATA]'
+  );
+}
+
 // Screenshot a webpage using Playwright
 async function screenshotWebpage(url: string, maxWidth: number = 800): Promise<string> {
   let browser;
@@ -262,13 +272,14 @@ app.post('/api/chat', async (req, res) => {
       console.log('Added viewport screenshot to message');
     }
     
-    // Add canvas JS code if available
+    // Add canvas JS code if available (redact embedded images to save tokens)
     if (currentCanvasJS) {
+      const redactedJS = redactImageDataFromJS(currentCanvasJS);
       userContent.push({
         type: 'text',
-        text: `Current Canvas JavaScript:\n\`\`\`javascript\n${currentCanvasJS}\n\`\`\``
+        text: `Current Canvas JavaScript (canvas size: ${canvasWidth}×${canvasHeight}):\n\`\`\`javascript\n${redactedJS}\n\`\`\``
       });
-      console.log('Added canvas JS to message');
+      console.log('Added canvas JS to message (with image data redacted)');
     }
     
     // Add user's text message
@@ -428,10 +439,10 @@ ctx.fillText('Error: ${error.message}', ${x}, ${y + 20});`;
         console.log('Added updated canvas screenshot to tool result');
       }
       
-      // Add updated canvas JS
+      // Add updated canvas JS (redact image data to save tokens)
       toolResultContent.push({
         type: 'text',
-        text: `Updated Canvas JavaScript:\n\`\`\`javascript\n${currentCanvasJS}\n\`\`\``
+        text: `Updated Canvas JavaScript:\n\`\`\`javascript\n${redactImageDataFromJS(currentCanvasJS)}\n\`\`\``
       });
       
       // Add tool result message to temp messages
