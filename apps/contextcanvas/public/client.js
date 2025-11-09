@@ -332,14 +332,26 @@ function draw(e) {
     // Draw the current stroke live on canvas
     if (ctx && currentPath.length > 1) {
         const prev = currentPath[currentPath.length - 2];
+        
+        // Save context and apply viewport transform
+        ctx.save();
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.translate(viewport.offsetX, viewport.offsetY);
+        ctx.scale(viewport.scale, viewport.scale);
+        
+        // Draw the line segment
         ctx.strokeStyle = '#ff6b35';
-        ctx.lineWidth = 3 / viewport.scale; // Adjust line width for zoom
+        ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.beginPath();
         ctx.moveTo(prev.x, prev.y);
         ctx.lineTo(coords.x, coords.y);
         ctx.stroke();
+        
+        // Restore context
+        ctx.restore();
     }
 }
 
