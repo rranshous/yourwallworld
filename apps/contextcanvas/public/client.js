@@ -70,6 +70,77 @@ resetViewButton.addEventListener('click', () => {
     renderCanvas();
 });
 
+// Canvas management UI
+const canvasPicker = document.getElementById('canvasPicker');
+const newCanvasButton = document.getElementById('newCanvasButton');
+const deleteCanvasButton = document.getElementById('deleteCanvasButton');
+
+function updateCanvasPicker() {
+    const canvases = loadCanvases();
+    const canvasIds = Object.keys(canvases);
+    
+    canvasPicker.innerHTML = '';
+    
+    canvasIds.forEach(id => {
+        const canvas = canvases[id];
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = canvas.name;
+        if (id === currentCanvasId) {
+            option.selected = true;
+        }
+        canvasPicker.appendChild(option);
+    });
+    
+    // Update delete button state
+    deleteCanvasButton.disabled = canvasIds.length <= 1;
+    if (canvasIds.length <= 1) {
+        deleteCanvasButton.style.opacity = '0.5';
+        deleteCanvasButton.style.cursor = 'not-allowed';
+    } else {
+        deleteCanvasButton.style.opacity = '1';
+        deleteCanvasButton.style.cursor = 'pointer';
+    }
+}
+
+canvasPicker.addEventListener('change', (e) => {
+    const selectedId = e.target.value;
+    if (selectedId && selectedId !== currentCanvasId) {
+        saveCurrentCanvas(); // Save before switching
+        loadCanvas(selectedId);
+    }
+});
+
+newCanvasButton.addEventListener('click', () => {
+    const name = prompt('Enter canvas name:', 'New Canvas');
+    if (name) {
+        saveCurrentCanvas(); // Save current before creating new
+        const id = createCanvas(name);
+        loadCanvas(id);
+    }
+});
+
+deleteCanvasButton.addEventListener('click', () => {
+    const canvases = loadCanvases();
+    const canvasIds = Object.keys(canvases);
+    
+    if (canvasIds.length <= 1) {
+        alert('Cannot delete the last canvas.');
+        return;
+    }
+    
+    const currentCanvas = getCurrentCanvas();
+    if (currentCanvas && confirm(`Delete canvas "${currentCanvas.name}"? This cannot be undone.`)) {
+        deleteCanvas(currentCanvasId);
+        
+        // Load another canvas
+        const remainingIds = Object.keys(loadCanvases());
+        if (remainingIds.length > 0) {
+            loadCanvas(remainingIds[0]);
+        }
+    }
+});
+
 // Close modal on background click
 resizeModal.addEventListener('click', (e) => {
     if (e.target === resizeModal) {
@@ -250,6 +321,123 @@ messageInput.addEventListener('keydown', (e) => {
 messageInput.focus();
 
 // -------------------------
+// Multi-Canvas Management
+// -------------------------
+
+// Canvas data model
+const STORAGE_KEY = 'contextcanvas_canvases';
+const ACTIVE_CANVAS_KEY = 'contextcanvas_active';
+
+// Active canvas state
+let currentCanvasId = null;
+
+// Storage functions
+function saveCanvases(canvases) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(canvases));
+}
+
+function loadCanvases() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : {};
+}
+
+function getActiveCanvasId() {
+    return localStorage.getItem(ACTIVE_CANVAS_KEY) || null;
+}
+
+function setActiveCanvasId(id) {
+    localStorage.setItem(ACTIVE_CANVAS_KEY, id);
+    currentCanvasId = id;
+}
+
+function createCanvas(name) {
+    const id = 'canvas_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+    const canvases = loadCanvases();
+    
+    canvases[id] = {
+        id: id,
+        name: name || 'Untitled Canvas',
+        canvasJS: `
+// Clear and set background
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Canvas boundary (so you can see edges when zoomed out)
+ctx.strokeStyle = '#cccccc';
+ctx.lineWidth = 2;
+ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+// Simple hello message
+ctx.fillStyle = '#858585';
+ctx.font = '16px Arial';
+ctx.fillText('Hello World', 20, 35);
+`,
+        created: Date.now(),
+        modified: Date.now()
+    };
+    
+    saveCanvases(canvases);
+    return id;
+}
+
+function deleteCanvas(id) {
+    const canvases = loadCanvases();
+    delete canvases[id];
+    saveCanvases(canvases);
+}
+
+function getCurrentCanvas() {
+    if (!currentCanvasId) return null;
+    const canvases = loadCanvases();
+    return canvases[currentCanvasId] || null;
+}
+
+function saveCurrentCanvas() {
+    if (!currentCanvasId) return;
+    
+    const canvases = loadCanvases();
+    if (canvases[currentCanvasId]) {
+        canvases[currentCanvasId].canvasJS = canvasJS;
+        canvases[currentCanvasId].modified = Date.now();
+        saveCanvases(canvases);
+    }
+}
+
+function loadCanvas(id) {
+    const canvases = loadCanvases();
+    const canvas = canvases[id];
+    
+    if (canvas) {
+        currentCanvasId = id;
+        setActiveCanvasId(id);
+        setCanvasJS(canvas.canvasJS);
+        updateCanvasPicker();
+        console.log('Loaded canvas:', canvas.name);
+    }
+}
+
+// Initialize - create default canvas if none exist
+function initializeCanvases() {
+    const canvases = loadCanvases();
+    const canvasIds = Object.keys(canvases);
+    
+    if (canvasIds.length === 0) {
+        // No canvases exist, create default
+        const id = createCanvas('Main Canvas');
+        loadCanvas(id);
+    } else {
+        // Load active canvas or first available
+        const activeId = getActiveCanvasId();
+        if (activeId && canvases[activeId]) {
+            loadCanvas(activeId);
+        } else {
+            loadCanvas(canvasIds[0]);
+        }
+    }
+}
+
+// -------------------------
 // Canvas JS code renderer
 // -------------------------
 
@@ -265,22 +453,8 @@ let viewport = {
 
 // The canvas JS code is the source of truth
 // This is the actual JavaScript that renders the canvas
-let canvasJS = `
-// Clear and set background
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-ctx.fillStyle = '#ffffff';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-// Canvas boundary (so you can see edges when zoomed out)
-ctx.strokeStyle = '#cccccc';
-ctx.lineWidth = 2;
-ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-// Simple hello message
-ctx.fillStyle = '#858585';
-ctx.font = '16px Arial';
-ctx.fillText('Hello World', 50, 50);
-`;
+// Will be loaded from storage or set to default
+let canvasJS = '';
 
 function resizeCanvasToFit() {
     const rect = canvas.getBoundingClientRect();
@@ -329,6 +503,7 @@ function setCanvasJS(newJS) {
     canvasJS = newJS;
     renderCanvas();
     updateDebugPanel();
+    saveCurrentCanvas(); // Auto-save when canvas JS changes
 }
 
 // Initialize
@@ -343,7 +518,8 @@ window.addEventListener('resize', () => {
     renderCanvas();
 });
 
-// run init after a tick so layout settled
+// Initialize canvases and then init canvas rendering
+initializeCanvases();
 setTimeout(initCanvas, 60);
 
 // -------------------------

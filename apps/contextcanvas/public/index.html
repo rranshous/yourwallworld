@@ -191,8 +191,13 @@
         
         <div id="chatSidebar">
             <div id="chatHeader">
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <span>Chat</span>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <select id="canvasPicker" style="padding: 4px 8px; font-size: 11px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #ccc; cursor: pointer; min-width: 120px;">
+                        <option>Loading...</option>
+                    </select>
+                    <button id="newCanvasButton" style="padding: 4px 8px; font-size: 11px; background: #0e639c; border: 1px solid #555; border-radius: 3px; color: #fff; cursor: pointer;">+ New</button>
+                    <button id="deleteCanvasButton" style="padding: 4px 8px; font-size: 11px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #ccc; cursor: pointer;">Delete</button>
+                    <div style="width: 1px; height: 16px; background: #555;"></div>
                     <button id="showJsButton" style="padding: 4px 8px; font-size: 11px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #ccc; cursor: pointer;">View JS</button>
                     <button id="resizeButton" style="padding: 4px 8px; font-size: 11px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #ccc; cursor: pointer;">Resize</button>
                     <button id="resetViewButton" style="padding: 4px 8px; font-size: 11px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #ccc; cursor: pointer;">Reset View</button>
