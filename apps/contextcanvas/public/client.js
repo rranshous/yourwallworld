@@ -850,8 +850,8 @@ function initializeCanvases() {
 // Canvas JS code renderer
 // -------------------------
 
-const canvas = document.getElementById('mainCanvas');
-const ctx = canvas.getContext && canvas.getContext('2d');
+let canvas = document.getElementById('mainCanvas');
+let ctx = canvas.getContext && canvas.getContext('2d');
 
 // Viewport state for pan and zoom
 let viewport = {
