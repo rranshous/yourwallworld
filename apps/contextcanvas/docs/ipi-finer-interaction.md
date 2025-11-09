@@ -270,22 +270,20 @@ ctx.fillRect(20, 140, 800, 200);
 ## Open Questions
 
 1. **Should we show a diff when canvas is replaced?**
-   - Pro: User sees what changed
-   - Con: Adds UI complexity
-   - Decision: Start simple (just show "Canvas replaced"), add diff later if needed
+   - **Decision**: No. Keep it simple - just show "Canvas replaced" message in chat
 
 2. **How to handle viewport control during active editing?**
-   - Lock viewport during tool execution?
-   - Allow Claude to move viewport mid-edit?
-   - Decision: Allow at any time, but queue updates until rendering complete
+   - **Decision**: Queue viewport changes, apply after Claude's full response completes
+   - This prevents jarring mid-edit viewport jumps
+   - User sees final state after all rendering is done
 
 3. **Element naming conventions?**
-   - Enforce unique names?
-   - Auto-generate names?
-   - Decision: Suggest naming convention, don't enforce (Claude can decide)
+   - **Decision**: Lead by example in starter JS/templates
+   - Let Claude choose names naturally
+   - No enforcement - Claude decides what makes sense
 
 4. **Should there be a canvas history/undo?**
-   - Out of scope for this IPI
+   - **Decision**: Out of scope for this IPI
    - Consider for future enhancement
 
 ---
