@@ -63,11 +63,16 @@ async function sendMessage() {
         // Capture canvas screenshot
         let canvasScreenshot = null;
         let canvasJSCode = null;
+        let canvasDimensions = null;
         
         if (canvas) {
             try {
                 canvasScreenshot = canvas.toDataURL('image/png');
                 canvasJSCode = canvasJS;
+                canvasDimensions = {
+                    width: canvas.width,
+                    height: canvas.height
+                };
             } catch (error) {
                 console.error('Error capturing canvas:', error);
             }
@@ -81,7 +86,8 @@ async function sendMessage() {
             body: JSON.stringify({ 
                 message,
                 canvasScreenshot,
-                canvasJS: canvasJSCode
+                canvasJS: canvasJSCode,
+                canvasDimensions
             })
         });
         

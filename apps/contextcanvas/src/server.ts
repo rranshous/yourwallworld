@@ -2,6 +2,7 @@ import express from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import dotenv from 'dotenv';
 import path from 'path';
+import { createCanvas } from 'canvas';
 
 dotenv.config();
 
@@ -62,6 +63,41 @@ interface Message {
 
 let conversationHistory: Message[] = [];
 
+// Function to render canvas JS on server and return base64 screenshot
+function renderCanvasOnServer(canvasJSCode: string, width: number, height: number): string {
+  try {
+    console.log(`Rendering canvas on server: ${width}x${height}`);
+    
+    // Create a canvas
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    
+    // Execute the canvas JS code
+    // Note: We need to be careful with eval, but this is our own generated code
+    eval(canvasJSCode);
+    
+    // Convert to base64 PNG
+    const buffer = canvas.toBuffer('image/png');
+    const base64 = buffer.toString('base64');
+    
+    console.log('Server-side rendering complete, image size:', buffer.length, 'bytes');
+    
+    return `data:image/png;base64,${base64}`;
+  } catch (error: any) {
+    console.error('Error rendering canvas on server:', error.message);
+    // Return a blank canvas on error
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#f48771';
+    ctx.font = '14px Arial';
+    ctx.fillText('Error rendering: ' + error.message, 20, 20);
+    const buffer = canvas.toBuffer('image/png');
+    return `data:image/png;base64,${buffer.toString('base64')}`;
+  }
+}
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Context Canvas server running' });
@@ -69,12 +105,13 @@ app.get('/api/health', (req, res) => {
 
 // Chat endpoint
 app.post('/api/chat', async (req, res) => {
-  const { message, canvasScreenshot, canvasJS } = req.body;
+  const { message, canvasScreenshot, canvasJS, canvasDimensions } = req.body;
   
   console.log('\n=== NEW CHAT REQUEST ===');
   console.log('Message:', message);
   console.log('Canvas JS length:', canvasJS?.length || 0);
   console.log('Has screenshot:', !!canvasScreenshot);
+  console.log('Canvas dimensions:', canvasDimensions);
   
   if (!message) {
     return res.status(400).json({ error: 'Message is required' });
@@ -84,6 +121,8 @@ app.post('/api/chat', async (req, res) => {
     // Track updated canvas JS through tool uses
     let currentCanvasJS = canvasJS || '';
     let currentScreenshot = canvasScreenshot;
+    const canvasWidth = canvasDimensions?.width || 1600;
+    const canvasHeight = canvasDimensions?.height || 900;
     
     // Build initial user message content with canvas context
     const userContent: any[] = [];
@@ -187,6 +226,10 @@ app.post('/api/chat', async (req, res) => {
         }
       }
       
+      // Render updated canvas on server
+      console.log('Rendering updated canvas on server...');
+      currentScreenshot = renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
+      
       // Build tool result message with updated canvas context
       const toolResultContent: any[] = [];
       
@@ -199,9 +242,21 @@ app.post('/api/chat', async (req, res) => {
         });
       }
       
-      // Note: We're not re-generating the screenshot here since we can't execute JS on server
-      // The client will need to render and we'll get updated screenshot on next user message
-      // For now, just send updated JS code
+      // Add updated canvas screenshot
+      if (currentScreenshot && currentScreenshot.startsWith('data:image')) {
+        const base64Data = currentScreenshot.split(',')[1];
+        toolResultContent.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: 'image/png',
+            data: base64Data
+          }
+        });
+        console.log('Added updated canvas screenshot to tool result');
+      }
+      
+      // Add updated canvas JS
       toolResultContent.push({
         type: 'text',
         text: `Updated Canvas JavaScript:\n\`\`\`javascript\n${currentCanvasJS}\n\`\`\``
@@ -213,7 +268,7 @@ app.post('/api/chat', async (req, res) => {
         content: toolResultContent
       });
       
-      console.log('Added tool results, looping back for next API call');
+      console.log('Added tool results with updated screenshot, looping back for next API call');
     }
     
     console.log('\n--- Processing Final Response ---');
