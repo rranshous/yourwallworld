@@ -221,7 +221,38 @@ await browser.close();
 
 ---
 
-### Milestone 4: Selective Element Editing
+### Milestone 4: User Canvas Rename
+
+**Goal**: Allow users to rename canvases when the purpose changes
+
+**Why This Matters**:
+- Canvas purpose often evolves during collaboration
+- "Brainstorm" becomes "Project Plan" as ideas solidify
+- Clear naming helps organize multiple canvases
+- User should control their canvas organization
+
+**Implementation Tasks**:
+- [ ] Add "Rename Canvas" button to canvas management UI
+- [ ] Create rename modal/prompt
+- [ ] Update canvas metadata (name + modified timestamp)
+- [ ] Refresh canvas picker dropdown with new name
+- [ ] Save to localStorage
+- [ ] Test: Rename canvas and verify it persists
+
+**UI Approach**:
+```
+[Canvas Picker ▼] [+ New] [Rename] [Delete]
+```
+
+**Success Metrics**:
+- Users can rename any canvas easily
+- New name shows immediately in picker
+- Rename persists across page refresh
+- Simple, quick interaction (inline edit or modal)
+
+---
+
+### Milestone 5: Selective Element Editing
 
 **Goal**: Edit specific parts of canvas without rewriting everything
 
@@ -279,6 +310,51 @@ ctx.fillRect(20, 140, 800, 200);
 
 ---
 
+### Milestone 6: AI Canvas Rename Tool
+
+**Goal**: Let Claude suggest canvas name updates based on content
+
+**Why This Matters**:
+- Claude can see when canvas purpose has shifted
+- Proactive naming based on what's actually on the canvas
+- "I see you're building a timeline now - should we rename this to 'Project Timeline'?"
+- Helps keep canvas organization meaningful
+
+**Implementation Tasks**:
+- [ ] Create `rename_canvas` tool definition
+- [ ] Add tool handler to update canvas metadata
+- [ ] Show rename notification in chat UI
+- [ ] Update canvas picker with new name
+- [ ] Update system prompt explaining when to suggest renames
+- [ ] Test: Claude suggests rename when content shifts
+- [ ] Test: User can accept/reject rename suggestions
+
+**Tool Definition**:
+```typescript
+{
+  name: 'rename_canvas',
+  description: 'Suggest a new name for the current canvas based on its content. Use this when the canvas purpose has clearly evolved beyond its original name.',
+  input_schema: {
+    new_name: string,           // Proposed new name for the canvas
+    reason?: string             // Optional: explain why this name fits better
+  }
+}
+```
+
+**System Prompt Guidance**:
+- Only suggest renames when canvas content clearly diverges from name
+- Be thoughtful about disrupting user's organization
+- Explain reasoning briefly when suggesting rename
+- Don't rename too frequently
+
+**Success Metrics**:
+- Claude suggests meaningful, contextually appropriate names
+- Renames happen at natural transition points
+- User can easily accept or revert if needed
+- Helps keep canvas library well-organized
+
+---
+
 ## Open Questions
 
 1. **Should we show a diff when canvas is replaced?**
@@ -318,12 +394,14 @@ ctx.fillRect(20, 140, 800, 200);
 
 ## Timeline
 
-- **Week 1**: Milestone 1 (Canvas Replace Tool - MVP)
-- **Week 2**: Milestone 2 (Browser-Based Rendering - fixes image limitation!)
+- **Week 1**: Milestone 1 (Canvas Replace Tool - MVP) ✅
+- **Week 2**: Milestone 2 (Browser-Based Rendering) ✅
 - **Week 3**: Milestone 3 (Viewport Control)
-- **Week 4**: Milestone 4 (Element Editing) + Polish
+- **Week 4**: Milestone 4 (User Canvas Rename)
+- **Week 5**: Milestone 5 (Element Editing)
+- **Week 6**: Milestone 6 (AI Canvas Rename) + Polish
 
-**Estimated Total**: 4 weeks
+**Estimated Total**: 6 weeks
 
 **Note**: Milestone 2 eliminates the need for image placeholder system - browser rendering handles images naturally!
 
