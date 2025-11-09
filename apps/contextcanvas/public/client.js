@@ -198,8 +198,17 @@ async function sendMessage() {
         
         // If there were tool uses, show them in the chat
         if (data.toolUses && data.toolUses.length > 0) {
-            const toolMessage = `🔧 Used drawing tool (${data.toolUses.length} operation${data.toolUses.length > 1 ? 's' : ''})`;
-            addMessage('assistant', toolMessage);
+            for (const toolUse of data.toolUses) {
+                let toolMessage = '🔧 Used tool';
+                if (toolUse.type === 'import_webpage' && toolUse.url) {
+                    toolMessage = `🌐 Imported webpage: ${toolUse.url}`;
+                } else if (toolUse.type === 'import_webpage_error' && toolUse.url) {
+                    toolMessage = `❌ Failed to import: ${toolUse.url}`;
+                } else {
+                    toolMessage = '🔧 Used drawing tool';
+                }
+                addMessage('assistant', toolMessage);
+            }
         }
         
         // Update canvas with new JS if provided

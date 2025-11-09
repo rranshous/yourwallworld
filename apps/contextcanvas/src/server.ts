@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import dotenv from 'dotenv';
 import path from 'path';
 import { createCanvas } from 'canvas';
+import { chromium } from 'playwright';
 
 dotenv.config();
 
@@ -35,6 +36,34 @@ const CANVAS_TOOL = {
   }
 };
 
+// Tool definition for importing web pages
+const IMPORT_WEBPAGE_TOOL = {
+  name: 'import_webpage',
+  description: 'Import a screenshot of a webpage into the canvas. The webpage will be captured as an image and placed on the canvas at the specified position.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      url: {
+        type: 'string',
+        description: 'The URL of the webpage to import (e.g., "https://example.com")'
+      },
+      x: {
+        type: 'number',
+        description: 'X coordinate for the top-left corner of the image (optional, defaults to 20)'
+      },
+      y: {
+        type: 'number',
+        description: 'Y coordinate for the top-left corner of the image (optional, defaults to 20)'
+      },
+      width: {
+        type: 'number',
+        description: 'Maximum width to scale the image to (optional, defaults to 800)'
+      }
+    },
+    required: ['url']
+  }
+};
+
 // System prompt explaining the shared canvas concept
 const SYSTEM_PROMPT = `You are collaborating with a human in a shared communication space called "Context Canvas."
 
@@ -51,9 +80,13 @@ Both representations help you understand the canvas from different perspectives 
 
 The human can see the canvas visually. You can see both the visual representation and the code that creates it.
 
-You have a tool called "update_canvas" that lets you add drawing commands to the canvas. Use it to draw shapes, text, or any visual elements. The JavaScript code you provide will be appended to the existing canvas code.
+You have two tools available:
 
-This is a collaborative space - be aware of what's on the canvas and reference it naturally in conversation. When asked to draw something, use the update_canvas tool.`;
+1. **update_canvas**: Add drawing commands to the canvas. Use it to draw shapes, text, or any visual elements. The JavaScript code you provide will be appended to the existing canvas code.
+
+2. **import_webpage**: Import a screenshot of any webpage into the canvas. Provide a URL and optional x, y position. This lets you bring external web content into the shared space for reference and discussion.
+
+This is a collaborative space - be aware of what's on the canvas and reference it naturally in conversation. When asked to draw or add content, use the appropriate tool.`;
 
 // Store conversation history
 interface Message {
@@ -95,6 +128,45 @@ function renderCanvasOnServer(canvasJSCode: string, width: number, height: numbe
     ctx.fillText('Error rendering: ' + error.message, 20, 20);
     const buffer = canvas.toBuffer('image/png');
     return `data:image/png;base64,${buffer.toString('base64')}`;
+  }
+}
+
+// Screenshot a webpage using Playwright
+async function screenshotWebpage(url: string, maxWidth: number = 800): Promise<string> {
+  let browser;
+  try {
+    console.log(`Screenshotting webpage: ${url}`);
+    
+    // Validate URL
+    const urlObj = new URL(url);
+    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+      throw new Error('Invalid URL protocol. Only http and https are supported.');
+    }
+    
+    // Launch headless browser
+    browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext({
+      viewport: { width: maxWidth, height: 1000 }
+    });
+    const page = await context.newPage();
+    
+    // Set timeout
+    await page.goto(url, { timeout: 10000, waitUntil: 'networkidle' });
+    
+    // Take screenshot
+    const screenshot = await page.screenshot({ type: 'png', fullPage: false });
+    
+    await browser.close();
+    
+    // Convert to base64
+    const base64 = screenshot.toString('base64');
+    console.log(`Screenshot captured, size: ${screenshot.length} bytes`);
+    
+    return `data:image/png;base64,${base64}`;
+  } catch (error: any) {
+    if (browser) await browser.close();
+    console.error('Error screenshotting webpage:', error.message);
+    throw new Error(`Failed to screenshot webpage: ${error.message}`);
   }
 }
 
@@ -203,7 +275,7 @@ app.post('/api/chat', async (req, res) => {
         model: MODEL_STRING,
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
-        tools: [CANVAS_TOOL],
+        tools: [CANVAS_TOOL, IMPORT_WEBPAGE_TOOL],
         messages: tempMessages.map(msg => ({
           role: msg.role,
           content: msg.content
@@ -239,13 +311,54 @@ app.post('/api/chat', async (req, res) => {
       
       // Execute tools and update canvas JS
       for (const toolUse of toolUseBlocks) {
-        if ((toolUse as any).name === 'update_canvas') {
+        const toolName = (toolUse as any).name;
+        
+        if (toolName === 'update_canvas') {
           const jsCode = (toolUse as any).input.javascript_code;
-          console.log('Tool use ID:', (toolUse as any).id);
+          console.log('Tool: update_canvas, ID:', (toolUse as any).id);
           console.log('JS code length:', jsCode.length);
           // Add comment indicating AI drew this
           currentCanvasJS += '\n// Drawn by AI\n' + jsCode;
           toolUses.push({ id: (toolUse as any).id, code: jsCode });
+        } else if (toolName === 'import_webpage') {
+          const url = (toolUse as any).input.url;
+          const x = (toolUse as any).input.x || 20;
+          const y = (toolUse as any).input.y || 20;
+          const maxWidth = (toolUse as any).input.width || 800;
+          
+          console.log('Tool: import_webpage, ID:', (toolUse as any).id);
+          console.log('URL:', url, 'Position:', x, y, 'Max width:', maxWidth);
+          
+          try {
+            // Screenshot the webpage
+            const imageDataUri = await screenshotWebpage(url, maxWidth);
+            
+            // Generate unique ID for this image
+            const imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            
+            // Generate canvas JS to draw the image
+            const imageJS = `
+// Imported webpage: ${url}
+const ${imageId} = new Image();
+${imageId}.src = '${imageDataUri}';
+${imageId}.onload = function() {
+  ctx.drawImage(${imageId}, ${x}, ${y});
+};`;
+            
+            currentCanvasJS += '\n' + imageJS;
+            toolUses.push({ id: (toolUse as any).id, code: imageJS, type: 'import_webpage', url });
+          } catch (error: any) {
+            console.error('Error importing webpage:', error.message);
+            // Add error text to canvas instead
+            const errorJS = `
+// Failed to import webpage: ${url}
+ctx.fillStyle = '#f48771';
+ctx.font = '14px Arial';
+ctx.fillText('Failed to import: ${url}', ${x}, ${y});
+ctx.fillText('Error: ${error.message}', ${x}, ${y + 20});`;
+            currentCanvasJS += '\n' + errorJS;
+            toolUses.push({ id: (toolUse as any).id, code: errorJS, type: 'import_webpage_error', url });
+          }
         }
       }
       
@@ -258,10 +371,20 @@ app.post('/api/chat', async (req, res) => {
       
       // Add tool_result blocks
       for (const toolUse of toolUseBlocks) {
+        const toolName = (toolUse as any).name;
+        let resultMessage = 'Operation completed successfully.';
+        
+        if (toolName === 'update_canvas') {
+          resultMessage = 'Drawing commands added to canvas successfully.';
+        } else if (toolName === 'import_webpage') {
+          const url = (toolUse as any).input.url;
+          resultMessage = `Webpage imported successfully from ${url}`;
+        }
+        
         toolResultContent.push({
           type: 'tool_result',
           tool_use_id: (toolUse as any).id,
-          content: 'Drawing commands added to canvas successfully.'
+          content: resultMessage
         });
       }
       
