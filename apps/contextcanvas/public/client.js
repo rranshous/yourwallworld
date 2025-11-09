@@ -850,8 +850,8 @@ function initializeCanvases() {
 // Canvas JS code renderer
 // -------------------------
 
-let canvas = document.getElementById('mainCanvas');
-let ctx = canvas.getContext && canvas.getContext('2d');
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext && canvas.getContext('2d');
 
 // Viewport state for pan and zoom
 let viewport = {
@@ -910,35 +910,9 @@ function updateDebugPanel() {
 
 function setCanvasJS(newJS) {
     canvasJS = newJS;
-    
-    // Recreate canvas element to stop any running animations/loops
-    recreateCanvas();
-    
     renderCanvas();
     updateDebugPanel();
     saveCurrentCanvas(); // Auto-save when canvas JS changes
-}
-
-// Recreate the canvas element to stop all running animations
-function recreateCanvas() {
-    const container = canvas.parentElement;
-    const oldCanvas = canvas;
-    
-    // Create new canvas element
-    const newCanvas = document.createElement('canvas');
-    newCanvas.id = 'canvas';
-    newCanvas.width = oldCanvas.width;
-    newCanvas.height = oldCanvas.height;
-    newCanvas.style.cssText = oldCanvas.style.cssText;
-    
-    // Replace old canvas with new one
-    container.replaceChild(newCanvas, oldCanvas);
-    
-    // Update global references
-    canvas = newCanvas;
-    ctx = canvas.getContext('2d');
-    
-    console.log('Canvas element recreated (stops animations)');
 }
 
 // Initialize
