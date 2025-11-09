@@ -105,6 +105,9 @@ function renderCanvasOnServer(canvasJSCode: string, width: number, height: numbe
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
+    // Polyfill Image for server-side rendering (node-canvas provides this, but need to import)
+    const { Image } = require('canvas');
+    
     // Execute the canvas JS code
     // Note: We need to be careful with eval, but this is our own generated code
     eval(canvasJSCode);
@@ -136,37 +139,60 @@ async function screenshotWebpage(url: string, maxWidth: number = 800): Promise<s
   let browser;
   try {
     console.log(`Screenshotting webpage: ${url}`);
-    
+
     // Validate URL
     const urlObj = new URL(url);
     if (!['http:', 'https:'].includes(urlObj.protocol)) {
       throw new Error('Invalid URL protocol. Only http and https are supported.');
     }
-    
-    // Launch headless browser
-    browser = await chromium.launch({ headless: true });
+
+    // Launch headless browser (include no-sandbox flags for container environments)
+    browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const context = await browser.newContext({
-      viewport: { width: maxWidth, height: 1000 }
+      viewport: { width: Math.max(320, Math.min(maxWidth, 1600)), height: 900 },
+      userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
     });
     const page = await context.newPage();
-    
-    // Set timeout
-    await page.goto(url, { timeout: 10000, waitUntil: 'networkidle' });
-    
-    // Take screenshot
-    const screenshot = await page.screenshot({ type: 'png', fullPage: false });
-    
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
+
+    // Use a sensible default navigation timeout, but be resilient to "networkidle" timeouts
+    page.setDefaultNavigationTimeout(30000);
+
+    let navigated = false;
+    try {
+      // Try the stricter wait first (may fail on sites with persistent connections)
+      await page.goto(url, { timeout: 10000, waitUntil: 'networkidle' });
+      navigated = true;
+    } catch (err: any) {
+      console.warn('networkidle navigation failed, falling back to domcontentloaded:', err.message);
+    }
+
+    if (!navigated) {
+      // Retry with a more permissive wait (domcontentloaded) and longer timeout
+      await page.goto(url, { timeout: 20000, waitUntil: 'domcontentloaded' });
+    }
+
+    // Give the page a short moment to settle (CSS/images may still be loading)
+    await page.waitForTimeout(500);
+
+    // Take screenshot (viewport only, with quality reduction to manage size)
+    const screenshot = await page.screenshot({ 
+      type: 'jpeg',  // Use JPEG instead of PNG for better compression
+      quality: 75,    // Reasonable quality vs size tradeoff
+      fullPage: false 
+    });
+
     await browser.close();
-    
+
     // Convert to base64
     const base64 = screenshot.toString('base64');
     console.log(`Screenshot captured, size: ${screenshot.length} bytes`);
-    
-    return `data:image/png;base64,${base64}`;
+
+    return `data:image/jpeg;base64,${base64}`;
   } catch (error: any) {
     if (browser) await browser.close();
-    console.error('Error screenshotting webpage:', error.message);
-    throw new Error(`Failed to screenshot webpage: ${error.message}`);
+    console.error('Error screenshotting webpage:', error?.message || error);
+    throw new Error(`Failed to screenshot webpage: ${error?.message || error}`);
   }
 }
 
