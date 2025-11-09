@@ -106,27 +106,29 @@ Future possibilities include:
 
 ---
 
-#### Milestone 4: Canvas as Context
+#### Milestone 4: Canvas as Context ✅
 **Goal**: AI can "see" the canvas
 
-- [ ] Implement canvas screenshot functionality
-  - [ ] Use `canvas.toDataURL()` or similar
-  - [ ] Convert to format for Anthropic API (base64)
-- [ ] Package canvas JavaScript code as text
-- [ ] Send canvas in API calls correctly
-  - [ ] System message: Explain the shared canvas concept and collaboration context
-  - [ ] User message: Include both screenshot and JS code
-  - [ ] Format clearly for the model
-- [ ] Test that model can describe canvas contents
+- [x] Implement canvas screenshot functionality
+  - [x] Use `canvas.toDataURL()` or similar
+  - [x] Convert to format for Anthropic API (base64)
+- [x] Package canvas JavaScript code as text
+- [x] Send canvas in API calls correctly
+  - [x] System message: Explain the shared canvas concept and collaboration context
+  - [x] User message: Include both screenshot and JS code
+  - [x] Format clearly for the model
+- [x] Test that model can describe canvas contents
 
 **Deliverable**: AI responses demonstrate awareness of canvas content
 
+**Status**: COMPLETE - Canvas screenshot + JS sent to AI in every message
+
 **Technical Notes**:
 - Anthropic API supports image inputs via base64
-- System prompt sets context about what we're doing together
+- System prompt sets context about shared canvas collaboration
 - Canvas (screenshot + JS) goes in user messages
-- Include JS code as text in message
-- Consider message size limits
+- Include JS code as text in markdown code block
+- History trimmed to last 10 messages (5 exchanges) due to image size
 
 ---
 
@@ -182,21 +184,22 @@ Future possibilities include:
 ## Implement
 
 ### Current Status
-**Active Milestone**: Canvas as Context (Milestone 4)
+**Active Milestone**: Simple Draw Tool for Human (Milestone 5)
 
 **Completed**:
 - ✅ Milestone 1: Foundation
 - ✅ Milestone 2: Simple Chat
 - ✅ Milestone 3: Canvas
+- ✅ Milestone 4: Canvas as Context
 
 **In Progress**:
 - None
 
 **Next Steps**:
-1. Implement canvas screenshot functionality
-2. Include canvas (screenshot + JS code) in chat API calls
-3. Set system prompt explaining shared canvas concept
-4. Test that AI can describe canvas contents
+1. Implement mouse event handlers for drawing
+2. Update canvas JS as drawing happens
+3. Ensure drawn content updates debug panel
+4. Test that AI can see drawings
 
 ---
 
@@ -243,6 +246,18 @@ Future possibilities include:
   - `setJS(code)` - update and re-render canvas
   - `render()` - re-execute canvas JS
   - `updateDebug()` - refresh debug panel
+
+#### [Date: 2025-11-09] - Milestone 4: Canvas as Context Complete ✅
+- Implemented canvas screenshot capture using `canvas.toDataURL('image/png')`
+- Updated client to send canvas screenshot + JS code with every chat message
+- Modified server to receive and format canvas data:
+  - Canvas screenshot sent as base64 image in message content
+  - Canvas JS code sent as text in markdown code block
+  - Both included in user message content array
+- Created comprehensive system prompt explaining shared canvas concept
+- Updated conversation history to support multi-modal content (text + images)
+- Reduced history retention to 10 messages (5 exchanges) due to image size
+- AI can now see both visual representation and code structure of canvas
 
 ---
 
