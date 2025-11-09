@@ -342,12 +342,16 @@ async function sendMessage() {
         if (data.toolUses && data.toolUses.length > 0) {
             for (const toolUse of data.toolUses) {
                 let toolMessage = '🔧 Used tool';
-                if (toolUse.type === 'import_webpage' && toolUse.url) {
+                if (toolUse.type === 'replace') {
+                    toolMessage = '🔄 Canvas replaced with new content';
+                } else if (toolUse.type === 'append') {
+                    toolMessage = '🔧 Added drawing to canvas';
+                } else if (toolUse.type === 'import_webpage' && toolUse.url) {
                     toolMessage = `🌐 Imported webpage: ${toolUse.url}`;
                 } else if (toolUse.type === 'import_webpage_error' && toolUse.url) {
                     toolMessage = `❌ Failed to import: ${toolUse.url}`;
                 } else {
-                    toolMessage = '🔧 Used drawing tool';
+                    toolMessage = '🔧 Used tool';
                 }
                 addMessage('assistant', toolMessage);
             }

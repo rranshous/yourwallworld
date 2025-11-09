@@ -20,16 +20,32 @@ const anthropic = new Anthropic({
 
 const MODEL_STRING = 'claude-sonnet-4-5-20250929';
 
-// Tool definition for canvas drawing
-const CANVAS_TOOL = {
-  name: 'update_canvas',
-  description: 'Add drawing commands to the shared canvas. Provide raw JavaScript code that uses the canvas context (ctx) to draw. The code will be appended to the existing canvas JavaScript. You can draw shapes, text, lines, etc. The canvas and ctx variables are available.',
+// Tool definition for canvas drawing (append mode)
+const APPEND_TO_CANVAS_TOOL = {
+  name: 'append_to_canvas',
+  description: 'Add new drawing commands to the existing canvas. Provide raw JavaScript code that uses the canvas context (ctx) to draw. The code will be APPENDED after all existing canvas code, so it layers on top of what\'s already there. Use this to add new elements while preserving existing content.',
   input_schema: {
     type: 'object' as const,
     properties: {
       javascript_code: {
         type: 'string',
         description: 'Raw JavaScript code using canvas context (ctx) to draw. Examples: ctx.fillStyle = "#ff0000"; ctx.fillRect(100, 100, 50, 50); or ctx.strokeStyle = "#0000ff"; ctx.beginPath(); ctx.arc(200, 200, 30, 0, Math.PI * 2); ctx.stroke();'
+      }
+    },
+    required: ['javascript_code']
+  }
+};
+
+// Tool definition for canvas replacement (replace mode)
+const REPLACE_CANVAS_TOOL = {
+  name: 'replace_canvas',
+  description: 'Replace the entire canvas with new code. This REMOVES all existing content and starts fresh. Use this to reorganize, refactor, or fix mistakes. LIMITATION: This will lose any imported webpage images. If you need to preserve imported images, use append_to_canvas instead.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      javascript_code: {
+        type: 'string',
+        description: 'Complete JavaScript code to render the entire canvas from scratch. Should include background setup and all drawing commands.'
       }
     },
     required: ['javascript_code']
@@ -84,11 +100,13 @@ Both representations help you understand the canvas from different perspectives 
 
 The human can see the canvas visually. You can see both the visual representation and the code that creates it.
 
-You have two tools available:
+You have three tools available:
 
-1. **update_canvas**: Add drawing commands to the canvas. Use it to draw shapes, text, or any visual elements. The JavaScript code you provide will be appended to the existing canvas code.
+1. **append_to_canvas**: Add new drawing commands to the existing canvas. Use this to layer new content on top of what's already there. The code you provide will be appended after all existing canvas code. This is the safe, additive way to build up the canvas.
 
-2. **import_webpage**: Import a screenshot of any webpage into the canvas. Provide a URL and optional x, y position. This lets you bring external web content into the shared space for reference and discussion.
+2. **replace_canvas**: Replace the entire canvas with new code. Use this to reorganize, refactor, or start fresh. WARNING: This removes all existing content, including any imported webpage images. Use append_to_canvas if you need to preserve images.
+
+3. **import_webpage**: Import a screenshot of any webpage into the canvas. Provide a URL and optional position/viewport size. This lets you bring external web content into the shared space for reference and discussion.
 
 This is a collaborative space - be aware of what's on the canvas and reference it naturally in conversation. When asked to draw or add content, use the appropriate tool.`;
 
@@ -326,7 +344,7 @@ app.post('/api/chat', async (req, res) => {
         model: MODEL_STRING,
         max_tokens: 10000,
         system: SYSTEM_PROMPT,
-        tools: [CANVAS_TOOL, IMPORT_WEBPAGE_TOOL],
+        tools: [APPEND_TO_CANVAS_TOOL, REPLACE_CANVAS_TOOL, IMPORT_WEBPAGE_TOOL],
         messages: tempMessages.map(msg => ({
           role: msg.role,
           content: msg.content
@@ -364,13 +382,20 @@ app.post('/api/chat', async (req, res) => {
       for (const toolUse of toolUseBlocks) {
         const toolName = (toolUse as any).name;
         
-        if (toolName === 'update_canvas') {
+        if (toolName === 'append_to_canvas') {
           const jsCode = (toolUse as any).input.javascript_code;
-          console.log('Tool: update_canvas, ID:', (toolUse as any).id);
+          console.log('Tool: append_to_canvas, ID:', (toolUse as any).id);
           console.log('JS code length:', jsCode.length);
           // Add comment indicating AI drew this
           currentCanvasJS += '\n// Drawn by AI\n' + jsCode;
-          toolUses.push({ id: (toolUse as any).id, code: jsCode });
+          toolUses.push({ id: (toolUse as any).id, code: jsCode, type: 'append' });
+        } else if (toolName === 'replace_canvas') {
+          const jsCode = (toolUse as any).input.javascript_code;
+          console.log('Tool: replace_canvas, ID:', (toolUse as any).id);
+          console.log('JS code length:', jsCode.length);
+          // Replace entire canvas
+          currentCanvasJS = jsCode;
+          toolUses.push({ id: (toolUse as any).id, code: jsCode, type: 'replace' });
         } else if (toolName === 'import_webpage') {
           const url = (toolUse as any).input.url;
           const x = (toolUse as any).input.x || 20;
@@ -430,8 +455,10 @@ ctx.fillText('Error: ${error.message}', ${x}, ${y + 20});`;
         const toolName = (toolUse as any).name;
         let resultMessage = 'Operation completed successfully.';
         
-        if (toolName === 'update_canvas') {
+        if (toolName === 'append_to_canvas') {
           resultMessage = 'Drawing commands added to canvas successfully.';
+        } else if (toolName === 'replace_canvas') {
+          resultMessage = 'Canvas replaced with new content.';
         } else if (toolName === 'import_webpage') {
           const url = (toolUse as any).input.url;
           resultMessage = `Webpage imported successfully from ${url}`;
