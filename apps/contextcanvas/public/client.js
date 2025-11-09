@@ -228,7 +228,7 @@ ctx.strokeRect(0, 0, canvas.width, canvas.height);
 // Simple hello message
 ctx.fillStyle = '#858585';
 ctx.font = '16px Arial';
-ctx.fillText('Hello World', 20, 35);
+ctx.fillText('Hello World', 50, 50);
 `;
 
 function resizeCanvasToFit() {
@@ -237,13 +237,7 @@ function resizeCanvasToFit() {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(rect.width * dpr);
     canvas.height = Math.floor(rect.height * dpr);
-    if (ctx) {
-        // Apply DPR scaling
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        // Then apply viewport transform
-        ctx.translate(viewport.offsetX, viewport.offsetY);
-        ctx.scale(viewport.scale, viewport.scale);
-    }
+    // Don't apply transforms here - renderCanvas will do it
 }
 
 function renderCanvas() {
@@ -333,8 +327,8 @@ function getCanvasCoordinates(e) {
 }
 
 function startDrawing(e) {
-    // Don't start drawing if middle mouse or shift+click (panning)
-    if (e.button === 1 || e.shiftKey) return;
+    // Don't start drawing if right mouse (panning)
+    if (e.button === 2) return;
     
     isDrawing = true;
     const coords = getCanvasCoordinates(e);
@@ -423,14 +417,19 @@ canvas.addEventListener('mouseleave', endDrawing);
 let isPanning = false;
 let panStart = { x: 0, y: 0 };
 
-// Pan with middle mouse or space+drag
+// Pan with right-click drag
 canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 1 || (e.button === 0 && e.shiftKey)) { // Middle click or Shift+left click
+    if (e.button === 2) { // Right click
         e.preventDefault();
         isPanning = true;
         panStart = { x: e.clientX, y: e.clientY };
         canvas.style.cursor = 'grab';
     }
+});
+
+// Prevent context menu on right-click
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
 });
 
 canvas.addEventListener('mousemove', (e) => {
@@ -448,7 +447,7 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 canvas.addEventListener('mouseup', (e) => {
-    if (e.button === 1 || (isPanning && e.button === 0)) {
+    if (e.button === 2 || (isPanning && e.button === 0)) { // Right click or was panning
         isPanning = false;
         canvas.style.cursor = 'default';
     }
