@@ -209,3 +209,89 @@ window.__contextCanvas = {
     render: renderCanvas,
     updateDebug: updateDebugPanel
 };
+
+// -------------------------
+// Drawing tool
+// -------------------------
+
+let isDrawing = false;
+let currentPath = [];
+
+function getCanvasCoordinates(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+}
+
+function startDrawing(e) {
+    isDrawing = true;
+    const coords = getCanvasCoordinates(e);
+    currentPath = [coords];
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const coords = getCanvasCoordinates(e);
+    currentPath.push(coords);
+    
+    // Draw the current stroke live on canvas
+    if (ctx && currentPath.length > 1) {
+        const prev = currentPath[currentPath.length - 2];
+        ctx.strokeStyle = '#ff6b35';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(coords.x, coords.y);
+        ctx.stroke();
+    }
+}
+
+function endDrawing() {
+    if (!isDrawing) return;
+    isDrawing = false;
+    
+    if (currentPath.length > 1) {
+        // Generate JS code for this path
+        const pathJS = generatePathJS(currentPath);
+        
+        // Append to canvas JS
+        canvasJS += '\n' + pathJS;
+        
+        // Re-render and update debug
+        renderCanvas();
+        updateDebugPanel();
+    }
+    
+    currentPath = [];
+}
+
+function generatePathJS(path) {
+    let code = '\n// Drawn path\n';
+    code += 'ctx.strokeStyle = "#ff6b35";\n';
+    code += 'ctx.lineWidth = 3;\n';
+    code += 'ctx.lineCap = "round";\n';
+    code += 'ctx.lineJoin = "round";\n';
+    code += 'ctx.beginPath();\n';
+    code += `ctx.moveTo(${path[0].x.toFixed(1)}, ${path[0].y.toFixed(1)});\n`;
+    
+    for (let i = 1; i < path.length; i++) {
+        code += `ctx.lineTo(${path[i].x.toFixed(1)}, ${path[i].y.toFixed(1)});\n`;
+    }
+    
+    code += 'ctx.stroke();';
+    
+    return code;
+}
+
+// Add event listeners for drawing
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', endDrawing);
+canvas.addEventListener('mouseleave', endDrawing);
