@@ -102,7 +102,80 @@ This enables true collaborative iteration: "move that circle left", "zoom in on 
 
 ---
 
-### Milestone 2: Viewport Control Tool
+### Milestone 2: Browser-Based Canvas Rendering
+
+**Goal**: Replace node-canvas with real browser rendering for full JavaScript support
+
+**Why This Matters**:
+- **Full JS support**: Callbacks, promises, async/await work naturally
+- **Fixes image limitation**: Images work properly with `onload` events
+- **Simpler code**: Remove `if (image.complete)` workarounds
+- **Enables future features**: Animations, DOM integration, Web APIs
+- **Better fidelity**: Exactly matches browser rendering
+
+**Current State**:
+- Using node-canvas for server-side rendering
+- Image `onload` doesn't fire naturally (need workarounds)
+- Limited JavaScript API support
+- Replace canvas loses imported images
+
+**New State**:
+- Use Playwright to render canvas in real browser
+- Generate HTML page with canvas and user's JS
+- Screenshot with same method as `import_webpage`
+- Full browser environment available to canvas code
+
+**Implementation Tasks**:
+- [ ] Create HTML template for canvas rendering
+- [ ] Update `renderCanvasOnServer` to use Playwright instead of node-canvas
+- [ ] Launch browser, load HTML with canvas JS, screenshot
+- [ ] Remove node-canvas dependency
+- [ ] Remove `if (image.complete)` workaround from image import code
+- [ ] Update tool descriptions (remove image limitation warnings)
+- [ ] Test: Images work with replace_canvas
+- [ ] Test: Async/callback code works in canvas
+
+**Benefits**:
+- ✅ Replace canvas now works with images (no placeholder system needed!)
+- ✅ Canvas code can use full JavaScript features
+- ✅ Simpler architecture (one rendering method)
+- ✅ Opens door to interactive canvas apps
+
+**Technical Approach**:
+```typescript
+// Generate HTML page
+const html = `
+<!DOCTYPE html>
+<html>
+<body>
+  <canvas id="canvas" width="${width}" height="${height}"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    ${canvasJS}
+  </script>
+</body>
+</html>
+`;
+
+// Render with Playwright
+const browser = await chromium.launch();
+const page = await browser.newPage();
+await page.setContent(html);
+await page.waitForTimeout(500); // Let images load
+const screenshot = await page.screenshot();
+await browser.close();
+```
+
+**Success Metrics**:
+- Canvas renders identically to browser view
+- Images work naturally in all scenarios
+- No special-case code needed for image handling
+- Canvas code can use modern JavaScript features
+
+---
+
+### Milestone 3: Viewport Control Tool
 
 **Goal**: Let Claude control pan/zoom to guide user attention
 
@@ -145,67 +218,6 @@ This enables true collaborative iteration: "move that circle left", "zoom in on 
 - Claude naturally uses viewport to guide conversation
 - User doesn't have to hunt for new additions
 - Spatial dialogue feels natural ("over here", "zoom out")
-
----
-
-### Milestone 3: Image Data Placeholder System
-
-**Goal**: Allow Claude to replace canvas while preserving imported images
-
-**The Problem**:
-- Image data URIs are **huge** (100k+ tokens each)
-- We redact them in JS sent to Claude: `data:image/jpeg;base64,[REDACTED_IMAGE_DATA]`
-- When Claude uses `replace_canvas`, it can't include the real image data (not in context)
-- Result: Imported images are lost on replace
-
-**The Solution**: Unique placeholder tokens + restoration
-
-**How It Works**:
-1. **Extract & Tag**: When sending JS to Claude, replace each image data URI with unique token
-   ```javascript
-   // Before (sent to backend):
-   img_abc123.src = 'data:image/jpeg;base64,/9j/4AAQ...[500KB]...';
-   
-   // After (sent to Claude):
-   img_abc123.src = '%%IMAGE_DATA:img_abc123%%';
-   ```
-
-2. **Claude Edits**: Claude sees placeholder, can include it in replace code
-   ```javascript
-   // Claude's replacement code:
-   const img_abc123 = new Image();
-   img_abc123.src = '%%IMAGE_DATA:img_abc123%%';  // Keeps placeholder
-   img_abc123.onload = () => ctx.drawImage(img_abc123, 50, 50);  // New position!
-   ```
-
-3. **Restore**: Backend restores real data URIs before executing
-   ```javascript
-   // Backend restores before execution:
-   img_abc123.src = 'data:image/jpeg;base64,/9j/4AAQ...[500KB]...';
-   ```
-
-**Implementation Tasks**:
-- [ ] Create placeholder extraction function (unique IDs per image)
-- [ ] Store image ID → data URI mapping during redaction
-- [ ] Update `replace_canvas` tool to restore placeholders
-- [ ] Handle edge cases (image deleted, image duplicated)
-- [ ] Update system prompt to explain placeholder usage
-- [ ] Test: Replace canvas while keeping image
-- [ ] Test: Replace canvas while moving image
-- [ ] Test: Replace canvas while deleting image
-
-**Placeholder Format**:
-```
-%%IMAGE_DATA:<image_variable_name>%%
-```
-- Easy to parse with regex
-- Unlikely to appear in real code
-- Preserves variable name for clarity
-
-**Success Metrics**:
-- Claude can replace canvas without losing images
-- Images can be repositioned during replace
-- Image data never sent to Claude (token savings maintained)
 
 ---
 
@@ -306,12 +318,14 @@ ctx.fillRect(20, 140, 800, 200);
 
 ## Timeline
 
-- **Week 1**: Milestone 1 (Canvas Replace Tool - MVP with image limitation)
-- **Week 2**: Milestone 2 (Viewport Control)
-- **Week 3**: Milestone 3 (Image Placeholder System - fixes replace limitation)
+- **Week 1**: Milestone 1 (Canvas Replace Tool - MVP)
+- **Week 2**: Milestone 2 (Browser-Based Rendering - fixes image limitation!)
+- **Week 3**: Milestone 3 (Viewport Control)
 - **Week 4**: Milestone 4 (Element Editing) + Polish
 
 **Estimated Total**: 4 weeks
+
+**Note**: Milestone 2 eliminates the need for image placeholder system - browser rendering handles images naturally!
 
 ---
 
@@ -328,8 +342,9 @@ ctx.fillRect(20, 140, 800, 200);
 ## Notes
 
 - Keep both append and replace tools available (explicit choice)
+- Browser-based rendering unlocks full JavaScript capabilities
 - Viewport control enables new interaction patterns
 - Element-based editing is powerful but adds complexity
-- Spatial queries deferred - may add later if needed
+- No need for image placeholder system with browser rendering
 
-**Key Insight**: The shift from "append-only" to "editable canvas" fundamentally changes the collaboration dynamic. Claude becomes a true editing partner, not just an additive assistant.
+**Key Insight**: The shift from "append-only" to "editable canvas" fundamentally changes the collaboration dynamic. Claude becomes a true editing partner, not just an additive assistant. Browser-based rendering makes the canvas a true JavaScript runtime environment.
