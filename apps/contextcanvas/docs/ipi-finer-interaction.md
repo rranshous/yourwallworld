@@ -80,7 +80,7 @@ This enables true collaborative iteration: "move that circle left", "zoom in on 
 
 {
   name: 'replace_canvas',
-  description: 'Replace the entire canvas with new code. This removes all existing content. Use this to reorganize, refactor, or fix mistakes. IMPORTANT: Image data from imported webpages is shown as [REDACTED_IMAGE_DATA] - if you want to keep an image, you must include the full data URI from the original code (not visible in context).',
+  description: 'Replace the entire canvas with new code. This removes all existing content. Use this to reorganize, refactor, or fix mistakes. LIMITATION: This will lose any imported webpage images. If you need to preserve imported images, use append_to_canvas instead.',
   input_schema: {
     javascript_code: string,
     reason?: string  // Optional: explain what you're changing
