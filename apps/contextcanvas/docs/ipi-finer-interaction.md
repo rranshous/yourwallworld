@@ -51,6 +51,12 @@ This enables true collaborative iteration: "move that circle left", "zoom in on 
 - **Safety**: Append is additive (safe), replace is destructive (intentional)
 - **Clear semantics**: Tool name = behavior
 
+**MVP Scope - Accept Limitations**:
+- For Milestone 1, `replace_canvas` will **lose imported images** (data URIs are redacted)
+- This is acceptable for MVP - most use cases are drawing/text, not images
+- Milestone 3 will fix this with placeholder restoration system
+- Document the limitation clearly in tool description
+
 **Implementation Tasks**:
 - [ ] Rename `update_canvas` → `append_to_canvas` in tool definition
 - [ ] Update system prompt to explain append behavior
@@ -74,7 +80,7 @@ This enables true collaborative iteration: "move that circle left", "zoom in on 
 
 {
   name: 'replace_canvas',
-  description: 'Replace the entire canvas with new code. This removes all existing content. Use this to reorganize, refactor, or fix mistakes.',
+  description: 'Replace the entire canvas with new code. This removes all existing content. Use this to reorganize, refactor, or fix mistakes. IMPORTANT: Image data from imported webpages is shown as [REDACTED_IMAGE_DATA] - if you want to keep an image, you must include the full data URI from the original code (not visible in context).',
   input_schema: {
     javascript_code: string,
     reason?: string  // Optional: explain what you're changing
@@ -82,10 +88,17 @@ This enables true collaborative iteration: "move that circle left", "zoom in on 
 }
 ```
 
+**Known Limitation - MVP**:
+- Image data URIs are redacted in the JS shown to Claude (to save tokens)
+- If Claude uses `replace_canvas`, any imported images will be **lost** unless Claude rewrites them
+- For MVP: Accept this limitation. If user wants to keep images, they should use `append_to_canvas`
+- **Milestone 3 will fix this** with placeholder restoration
+
 **Success Metrics**:
 - Claude can fix drawing mistakes without accumulating code
 - Canvas JS stays clean (no redundant code)
 - User can ask "change that to blue" and it works
+- ⚠️ Known: Replacing canvas loses imported images (documented limitation)
 
 ---
 
@@ -135,7 +148,68 @@ This enables true collaborative iteration: "move that circle left", "zoom in on 
 
 ---
 
-### Milestone 3: Selective Element Editing
+### Milestone 3: Image Data Placeholder System
+
+**Goal**: Allow Claude to replace canvas while preserving imported images
+
+**The Problem**:
+- Image data URIs are **huge** (100k+ tokens each)
+- We redact them in JS sent to Claude: `data:image/jpeg;base64,[REDACTED_IMAGE_DATA]`
+- When Claude uses `replace_canvas`, it can't include the real image data (not in context)
+- Result: Imported images are lost on replace
+
+**The Solution**: Unique placeholder tokens + restoration
+
+**How It Works**:
+1. **Extract & Tag**: When sending JS to Claude, replace each image data URI with unique token
+   ```javascript
+   // Before (sent to backend):
+   img_abc123.src = 'data:image/jpeg;base64,/9j/4AAQ...[500KB]...';
+   
+   // After (sent to Claude):
+   img_abc123.src = '%%IMAGE_DATA:img_abc123%%';
+   ```
+
+2. **Claude Edits**: Claude sees placeholder, can include it in replace code
+   ```javascript
+   // Claude's replacement code:
+   const img_abc123 = new Image();
+   img_abc123.src = '%%IMAGE_DATA:img_abc123%%';  // Keeps placeholder
+   img_abc123.onload = () => ctx.drawImage(img_abc123, 50, 50);  // New position!
+   ```
+
+3. **Restore**: Backend restores real data URIs before executing
+   ```javascript
+   // Backend restores before execution:
+   img_abc123.src = 'data:image/jpeg;base64,/9j/4AAQ...[500KB]...';
+   ```
+
+**Implementation Tasks**:
+- [ ] Create placeholder extraction function (unique IDs per image)
+- [ ] Store image ID → data URI mapping during redaction
+- [ ] Update `replace_canvas` tool to restore placeholders
+- [ ] Handle edge cases (image deleted, image duplicated)
+- [ ] Update system prompt to explain placeholder usage
+- [ ] Test: Replace canvas while keeping image
+- [ ] Test: Replace canvas while moving image
+- [ ] Test: Replace canvas while deleting image
+
+**Placeholder Format**:
+```
+%%IMAGE_DATA:<image_variable_name>%%
+```
+- Easy to parse with regex
+- Unlikely to appear in real code
+- Preserves variable name for clarity
+
+**Success Metrics**:
+- Claude can replace canvas without losing images
+- Images can be repositioned during replace
+- Image data never sent to Claude (token savings maintained)
+
+---
+
+### Milestone 4: Selective Element Editing
 
 **Goal**: Edit specific parts of canvas without rewriting everything
 
@@ -193,7 +267,7 @@ ctx.fillRect(20, 140, 800, 200);
 
 ---
 
-### Milestone 4: Spatial Query Tool
+### Milestone 5: Spatial Query Tool
 
 **Goal**: Let Claude query canvas state and element positions
 
@@ -280,12 +354,13 @@ ctx.fillRect(20, 140, 800, 200);
 
 ## Timeline
 
-- **Week 1**: Milestone 1 (Canvas Replace Tool)
+- **Week 1**: Milestone 1 (Canvas Replace Tool - MVP with image limitation)
 - **Week 2**: Milestone 2 (Viewport Control)
-- **Week 3**: Milestone 3 (Element Editing) 
-- **Week 4**: Milestone 4 (Spatial Queries) + Polish
+- **Week 3**: Milestone 3 (Image Placeholder System - fixes replace limitation)
+- **Week 4**: Milestone 4 (Element Editing)
+- **Week 5**: Milestone 5 (Spatial Queries) + Polish
 
-**Estimated Total**: 4 weeks
+**Estimated Total**: 5 weeks
 
 ---
 
