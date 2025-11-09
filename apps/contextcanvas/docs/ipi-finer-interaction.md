@@ -267,52 +267,6 @@ ctx.fillRect(20, 140, 800, 200);
 
 ---
 
-### Milestone 5: Spatial Query Tool
-
-**Goal**: Let Claude query canvas state and element positions
-
-**Why This Matters**:
-- Claude can reason about spatial relationships
-- "Is there room on the left?"
-- "What's at coordinate (100, 200)?"
-- Better placement decisions
-
-**Implementation Tasks**:
-- [ ] Create `query_canvas` tool
-- [ ] Add spatial analysis on backend
-- [ ] Return element positions, bounds, free space
-- [ ] Test: Claude can find free space
-- [ ] Test: Claude avoids overlapping existing content
-
-**Tool Definition**:
-```typescript
-{
-  name: 'query_canvas',
-  description: 'Get information about the current canvas state, elements, and available space.',
-  input_schema: {
-    query_type: 'elements' | 'free_space' | 'bounds',
-    region?: {x: number, y: number, width: number, height: number}
-  }
-}
-```
-
-**Returns**:
-```typescript
-{
-  elements: [{name: string, bounds: {x, y, width, height}}],
-  free_regions: [{x, y, width, height}],
-  canvas_bounds: {width, height},
-  viewport: {x, y, scale}
-}
-```
-
-**Success Metrics**:
-- Claude intelligently places new content in free space
-- Fewer overlapping elements
-- Better spatial organization
-
----
-
 ## Open Questions
 
 1. **Should we show a diff when canvas is replaced?**
@@ -357,10 +311,9 @@ ctx.fillRect(20, 140, 800, 200);
 - **Week 1**: Milestone 1 (Canvas Replace Tool - MVP with image limitation)
 - **Week 2**: Milestone 2 (Viewport Control)
 - **Week 3**: Milestone 3 (Image Placeholder System - fixes replace limitation)
-- **Week 4**: Milestone 4 (Element Editing)
-- **Week 5**: Milestone 5 (Spatial Queries) + Polish
+- **Week 4**: Milestone 4 (Element Editing) + Polish
 
-**Estimated Total**: 5 weeks
+**Estimated Total**: 4 weeks
 
 ---
 
@@ -379,6 +332,6 @@ ctx.fillRect(20, 140, 800, 200);
 - Keep both append and replace tools available (explicit choice)
 - Viewport control enables new interaction patterns
 - Element-based editing is powerful but adds complexity
-- Spatial queries might be overkill - evaluate after M2
+- Spatial queries deferred - may add later if needed
 
 **Key Insight**: The shift from "append-only" to "editable canvas" fundamentally changes the collaboration dynamic. Claude becomes a true editing partner, not just an additive assistant.
