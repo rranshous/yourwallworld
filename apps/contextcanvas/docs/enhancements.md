@@ -178,6 +178,56 @@ AI: "I've added a screenshot of the Anthropic homepage to the canvas."
 
 ---
 
+### Milestone 5: Canvas Resizing
+
+#### Expand Canvas Dimensions
+**Goal**: Allow users to grow the canvas as they need more space
+
+- [ ] Add "Resize Canvas" button to action bar
+- [ ] Modal/dropdown with resize options:
+  - 2x Width (double width, keep height)
+  - 2x Height (keep width, double height)
+  - 2x Both (double both dimensions)
+  - Custom size input (advanced)
+- [ ] When resizing:
+  - Preserve all existing content (top-left anchored)
+  - Update canvas element dimensions
+  - Update stored canvas metadata
+  - Re-render canvas with new size
+- [ ] Show current canvas size in UI
+- [ ] Confirm before resize (warn about large sizes)
+
+**Benefits**:
+- Start small, grow organically
+- Don't run out of space
+- Supports large, complex collaborations
+- More efficient than starting with huge canvas
+
+**Technical Notes**:
+- Canvas content is top-left anchored (x=0, y=0 stays same)
+- Existing JS code still works (coordinates unchanged)
+- Need to update canvas.width and canvas.height
+- May need to scale down for full-canvas screenshots if very large
+- Consider maximum size limits (performance, memory, API tokens)
+
+**Suggested Limits**:
+- Starting size: 1600x900
+- Max size: 6400x3600 (4x starting size)
+- Allow doubling while under max
+
+**UI**:
+```
+[Resize Canvas ▼]
+  ├─ 2x Width (→ 3200x900)
+  ├─ 2x Height (→ 1600x1800)
+  ├─ 2x Both (→ 3200x1800)
+  └─ Custom Size...
+  
+Current: 1600x900
+```
+
+---
+
 ## Removed / Deferred
 
 ### Not Implementing:
@@ -197,9 +247,12 @@ AI: "I've added a screenshot of the Anthropic homepage to the canvas."
 1. **Milestone 2**: Multi-Canvas Management (persistence, switching, deletion)
 2. **Milestone 3**: Communication Frame Starters (depends on M2)
 
-### Phase 2: Advanced Features  
-3. **Milestone 1**: Pan and Zoom with Focus Context
-4. **Milestone 4**: Web Page Import Tool
+### Phase 2: Canvas Expansion
+3. **Milestone 5**: Canvas Resizing (allow growth)
+4. **Milestone 1**: Pan and Zoom with Focus Context (navigate large canvases)
+
+### Phase 3: External Content
+5. **Milestone 4**: Web Page Import Tool (bring in web content)
 
 ---
 
