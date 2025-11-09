@@ -117,8 +117,10 @@ app.post('/api/chat', async (req, res) => {
     });
     
     // Tool use loop - keep calling API while model wants to use tools
+    // Use a temporary message array for the tool loop
     let finalResponse: any = null;
     let toolUses: any[] = [];
+    const tempMessages = [...conversationHistory]; // Work with a copy
     
     while (true) {
       // Call Anthropic API
@@ -127,7 +129,7 @@ app.post('/api/chat', async (req, res) => {
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
         tools: [CANVAS_TOOL],
-        messages: conversationHistory.map(msg => ({
+        messages: tempMessages.map(msg => ({
           role: msg.role,
           content: msg.content
         }))
@@ -143,8 +145,8 @@ app.post('/api/chat', async (req, res) => {
         break;
       }
       
-      // Add assistant's response (with tool_use blocks) to history
-      conversationHistory.push({
+      // Add assistant's response (with tool_use blocks) to temp messages
+      tempMessages.push({
         role: 'assistant',
         content: response.content
       });
@@ -153,7 +155,8 @@ app.post('/api/chat', async (req, res) => {
       for (const toolUse of toolUseBlocks) {
         if ((toolUse as any).name === 'update_canvas') {
           const jsCode = (toolUse as any).input.javascript_code;
-          currentCanvasJS += '\n' + jsCode;
+          // Add comment indicating AI drew this
+          currentCanvasJS += '\n// Drawn by AI\n' + jsCode;
           toolUses.push({ id: (toolUse as any).id, code: jsCode });
         }
       }
@@ -170,17 +173,16 @@ app.post('/api/chat', async (req, res) => {
         });
       }
       
-      // Add updated canvas screenshot (client will need to generate this)
-      // For now, we'll send back the updated JS and let client handle screenshot
-      
-      // Add updated canvas JS
+      // Note: We're not re-generating the screenshot here since we can't execute JS on server
+      // The client will need to render and we'll get updated screenshot on next user message
+      // For now, just send updated JS code
       toolResultContent.push({
         type: 'text',
         text: `Updated Canvas JavaScript:\n\`\`\`javascript\n${currentCanvasJS}\n\`\`\``
       });
       
-      // Add tool result message to history
-      conversationHistory.push({
+      // Add tool result message to temp messages
+      tempMessages.push({
         role: 'user',
         content: toolResultContent
       });

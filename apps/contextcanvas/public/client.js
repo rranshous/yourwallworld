@@ -54,6 +54,9 @@ async function sendMessage() {
     sendButton.disabled = true;
     messageInput.disabled = true;
     
+    // Add loading indicator
+    const loadingMsg = addMessage('assistant', '...');
+    
     try {
         // Capture canvas screenshot
         let canvasScreenshot = null;
@@ -86,6 +89,9 @@ async function sendMessage() {
         
         const data = await response.json();
         
+        // Remove loading indicator
+        loadingMsg.remove();
+        
         // If there were tool uses, show them in the chat
         if (data.toolUses && data.toolUses.length > 0) {
             const toolMessage = `🔧 Used drawing tool (${data.toolUses.length} operation${data.toolUses.length > 1 ? 's' : ''})`;
@@ -104,6 +110,8 @@ async function sendMessage() {
         
     } catch (error) {
         console.error('Error sending message:', error);
+        // Remove loading indicator
+        loadingMsg.remove();
         addMessage('assistant', 'Sorry, there was an error processing your message.');
     } finally {
         // Re-enable input
@@ -284,7 +292,7 @@ function endDrawing() {
 }
 
 function generatePathJS(path) {
-    let code = '\n// Drawn path\n';
+    let code = '\n// Drawn by human\n';
     code += 'ctx.strokeStyle = "#ff6b35";\n';
     code += 'ctx.lineWidth = 3;\n';
     code += 'ctx.lineCap = "round";\n';
