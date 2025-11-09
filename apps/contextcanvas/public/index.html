@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Canvas - Shared Communication Space</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        #mainArea {
+            flex: 1;
+            display: flex;
+            align-items: stretch;
+            justify-content: stretch;
+            background: #252526;
+        }
+
+        #mainCanvas {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #ffffff;
+        }
+
+        #debugPanel {
+            position: absolute;
+            left: 20px;
+            bottom: 20px;
+            width: 480px;
+            max-height: 40vh;
+            background: rgba(30,30,30,0.95);
+            color: #d4d4d4;
+            border: 1px solid #3e3e42;
+            border-radius: 6px;
+            overflow: auto;
+            z-index: 1000;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        #debugHeader {
+            padding: 8px 10px;
+            background: #1e1e1e;
+            border-bottom: 1px solid #3e3e42;
+            font-weight: 700;
+        }
+
+        #canvasCode {
+            margin: 0;
+            padding: 10px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        #chatSidebar {
+            width: 400px;
+            background: #1e1e1e;
+            border-left: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #chatHeader {
+            padding: 15px;
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+            font-weight: 600;
+            color: #cccccc;
+        }
+        
+        #chatMessages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            padding: 10px 12px;
+            border-radius: 8px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+        
+        .message.user {
+            background: #0e639c;
+            color: #ffffff;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        
+        .message.assistant {
+            background: #2d2d30;
+            color: #d4d4d4;
+            align-self: flex-start;
+            border: 1px solid #3e3e42;
+        }
+        
+        .message-role {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+        
+        #chatInput {
+            border-top: 1px solid #3e3e42;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        #messageInput {
+            flex: 1;
+            background: #3c3c3c;
+            border: 1px solid #3e3e42;
+            color: #d4d4d4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: none;
+            min-height: 60px;
+        }
+        
+        #messageInput:focus {
+            outline: none;
+            border-color: #0e639c;
+        }
+        
+        #sendButton {
+            background: #0e639c;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        #sendButton:hover:not(:disabled) {
+            background: #1177bb;
+        }
+        
+        #sendButton:disabled {
+            background: #3e3e42;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        h1 {
+            font-size: 3em;
+            color: #569cd6;
+            text-align: center;
+        }
+        
+        .subtitle {
+            font-size: 1.2em;
+            color: #858585;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .status {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            font-size: 12px;
+            color: #4ec9b0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="mainArea">
+            <canvas id="mainCanvas" width="1600" height="900" style="background: #fff; border: 1px solid #333; display: block; max-width: 100%; height: auto;"></canvas>
+            <div id="debugPanel">
+                <div id="debugHeader">Canvas JS / State</div>
+                <pre id="canvasCode">// Canvas state will appear here for debugging</pre>
+            </div>
+        </div>
+        
+        <div id="chatSidebar">
+            <div id="chatHeader">
+                Chat
+            </div>
+            <div id="chatMessages">
+                <!-- Messages will appear here -->
+            </div>
+            <div id="chatInput">
+                <textarea id="messageInput" placeholder="Type a message..."></textarea>
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status">
+        <span id="statusText">Server connected ✓</span>
+    </div>
+    
+    <script src="client.js"></script>
+</body>
+</html>
