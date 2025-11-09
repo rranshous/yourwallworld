@@ -97,7 +97,7 @@ interface Message {
 let conversationHistory: Message[] = [];
 
 // Function to render canvas JS on server and return base64 screenshot
-function renderCanvasOnServer(canvasJSCode: string, width: number, height: number): string {
+async function renderCanvasOnServer(canvasJSCode: string, width: number, height: number): Promise<string> {
   try {
     console.log(`Rendering canvas on server: ${width}x${height}`);
     
@@ -111,6 +111,9 @@ function renderCanvasOnServer(canvasJSCode: string, width: number, height: numbe
     // Execute the canvas JS code
     // Note: We need to be careful with eval, but this is our own generated code
     eval(canvasJSCode);
+    
+    // Wait a bit for Image onload callbacks to fire (data URIs load fast from memory)
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Convert to base64 PNG
     const buffer = canvas.toBuffer('image/png');
@@ -401,7 +404,7 @@ ctx.fillText('Error: ${error.message}', ${x}, ${y + 20});`;
       
       // Render updated canvas on server
       console.log('Rendering updated canvas on server...');
-      currentFullScreenshot = renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
+      currentFullScreenshot = await renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
       
       // Build tool result message with updated canvas context
       const toolResultContent: any[] = [];
