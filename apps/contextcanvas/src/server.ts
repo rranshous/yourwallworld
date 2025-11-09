@@ -223,10 +223,11 @@ app.get('/api/health', (req, res) => {
 
 // Chat endpoint
 app.post('/api/chat', async (req, res) => {
-  const { message, fullCanvasScreenshot, viewportScreenshot, canvasJS, canvasDimensions, viewport } = req.body;
+  const { message, fullCanvasScreenshot, viewportScreenshot, canvasJS, canvasName, canvasDimensions, viewport } = req.body;
   
   console.log('\n=== NEW CHAT REQUEST ===');
   console.log('Message:', message);
+  console.log('Canvas name:', canvasName || 'Unknown');
   console.log('Canvas JS length:', canvasJS?.length || 0);
   console.log('Has full canvas screenshot:', !!fullCanvasScreenshot);
   console.log('Has viewport screenshot:', !!viewportScreenshot);
@@ -285,9 +286,10 @@ app.post('/api/chat', async (req, res) => {
     // Add canvas JS code if available (redact embedded images to save tokens)
     if (currentCanvasJS) {
       const redactedJS = redactImageDataFromJS(currentCanvasJS);
+      const canvasLabel = canvasName ? `Canvas: "${canvasName}"` : 'Current Canvas';
       userContent.push({
         type: 'text',
-        text: `Current Canvas JavaScript (canvas size: ${canvasWidth}×${canvasHeight}):\n\`\`\`javascript\n${redactedJS}\n\`\`\``
+        text: `${canvasLabel} JavaScript (canvas size: ${canvasWidth}×${canvasHeight}):\n\`\`\`javascript\n${redactedJS}\n\`\`\``
       });
       console.log('Added canvas JS to message (with image data redacted)');
     }

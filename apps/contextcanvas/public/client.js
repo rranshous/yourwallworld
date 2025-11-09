@@ -238,6 +238,10 @@ async function sendMessage() {
             }
         }
         
+        // Get current canvas info
+        const currentCanvas = getCurrentCanvas();
+        const canvasName = currentCanvas ? currentCanvas.name : 'Unknown Canvas';
+        
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
@@ -248,6 +252,7 @@ async function sendMessage() {
                 fullCanvasScreenshot,
                 viewportScreenshot,
                 canvasJS: canvasJSCode,
+                canvasName: canvasName,
                 canvasDimensions,
                 viewport: viewportData
             })
