@@ -506,8 +506,10 @@ function captureFullCanvas() {
     tempCtx.clearRect(0, 0, tempCanvas.width / dpr, tempCanvas.height / dpr);
     
     try {
-        // Execute canvas JS without viewport transform
-        eval(canvasJS);
+        // Create a function scope with temp canvas/ctx variables
+        // This ensures the canvas JS uses the temp canvas, not the main one
+        const renderFunc = new Function('canvas', 'ctx', canvasJS);
+        renderFunc(tempCanvas, tempCtx);
     } catch (error) {
         console.error('Error rendering full canvas:', error);
     }
