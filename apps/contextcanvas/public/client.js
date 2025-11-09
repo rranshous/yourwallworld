@@ -150,7 +150,7 @@ async function sendMessage() {
         
         if (canvas) {
             try {
-                fullCanvasScreenshot = captureFullCanvas();
+                fullCanvasScreenshot = await captureFullCanvas();
                 viewportScreenshot = captureViewport();
                 canvasJSCode = canvasJS;
                 canvasDimensions = {
@@ -607,7 +607,7 @@ window.__contextCanvas.resetView = function() {
 // -------------------------
 
 // Generate full canvas screenshot (no viewport transform)
-function captureFullCanvas() {
+async function captureFullCanvas() {
     if (!canvas || !ctx) return null;
     
     // Create temporary canvas
@@ -629,6 +629,9 @@ function captureFullCanvas() {
     } catch (error) {
         console.error('Error rendering full canvas:', error);
     }
+    
+    // Wait for images to load (data URIs load fast in browser)
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     return tempCanvas.toDataURL('image/png');
 }

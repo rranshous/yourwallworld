@@ -113,7 +113,7 @@ async function renderCanvasOnServer(canvasJSCode: string, width: number, height:
     eval(canvasJSCode);
     
     // Wait a bit for Image onload callbacks to fire (data URIs load fast from memory)
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Convert to base64 PNG
     const buffer = canvas.toBuffer('image/png');
