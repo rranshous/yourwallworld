@@ -12,9 +12,9 @@ This document outlines potential enhancements and new features for Context Canva
 
 ---
 
-## Enhancement Categories
+## Enhancement Milestones
 
-### 1. Canvas Interaction & Navigation
+### Milestone 1: Pan and Zoom with Focus Context
 
 #### Pan and Zoom
 **Goal**: Allow users to navigate a larger canvas space
@@ -25,304 +25,214 @@ This document outlines potential enhancements and new features for Context Canva
 - [ ] Preserve zoom/pan state across messages
 - [ ] Update coordinate system to handle viewport transforms
 
-**Benefits**: Enables working on larger, more complex canvases without cluttering the visible space
+#### Dual Context Sending
+**Goal**: AI always sees full canvas + user's current focus area
+
+- [ ] Always send complete rendered canvas screenshot
+- [ ] Additionally send user's viewport/focus area as separate image
+- [ ] Label focus image in message: "Current user focus area"
+- [ ] Include viewport bounds in context (x, y, width, height, zoom)
+
+**Benefits**: 
+- AI maintains awareness of entire canvas
+- AI understands what human is currently focusing on
+- Enables "look at this" style interactions
 
 **Technical Notes**:
-- Need to track viewport position and scale
-- Transform mouse coordinates to canvas space
-- Consider how AI understands "off-screen" content
-- May need to send viewport bounds to AI
+- Two screenshots per message: full canvas + viewport crop
+- Viewport metadata helps AI understand spatial relationships
+- May need to limit full canvas size (scale down if too large)
 
 ---
 
-#### Undo/Redo
-**Goal**: Allow users to undo/redo drawing actions
+### Milestone 2: Multi-Canvas Management
 
-- [ ] Maintain history stack of canvas states
-- [ ] Add Ctrl+Z / Ctrl+Y keyboard shortcuts
-- [ ] Show undo/redo buttons in UI
-- [ ] Handle AI drawing operations in history
-- [ ] Limit history depth (e.g., last 50 actions)
+#### Canvas Persistence
+**Goal**: All canvases auto-saved, easy switching between them
 
-**Benefits**: Makes experimentation safer, reduces fear of making mistakes
+- [ ] Auto-save every canvas change to storage (localStorage or backend DB)
+- [ ] Each canvas has unique ID and metadata (created date, last modified, thumbnail)
+- [ ] Add top action bar to UI
+- [ ] "Switch Canvas" button/dropdown in action bar
+- [ ] Canvas picker UI (grid or list with thumbnails)
+- [ ] "New Canvas" button (creates blank canvas)
+- [ ] "Delete Canvas" button (removes current canvas)
+- [ ] Default canvas created on first visit
+
+**Important**: Chat context does NOT change when switching canvases - only the canvas being operated on changes
+
+**Benefits**: 
+- Never lose work (auto-save)
+- Jump between different collaborative spaces
+- Experiment freely, delete mistakes
+- Build library of canvases over time
 
 **Technical Notes**:
-- Store snapshots of canvas JS at each change
-- Consider memory implications of storing many states
-- Need to distinguish user actions vs AI actions in history
+- Store canvas JS + metadata + thumbnail
+- Canvas ID in URL or state
+- Conversation history stays global (doesn't switch with canvas)
+- Need confirmation before delete
+- Consider soft delete (trash/archive)
+
+**UI Layout**:
+```
+[Action Bar]
+  [Canvas Picker ▼] [New Canvas] [Delete Canvas] [...other actions]
+  
+[Main Canvas Area]
+[Chat Sidebar]
+```
 
 ---
 
-### 2. Drawing Tools & Customization
+### Milestone 3: Communication Frame Starters
 
-#### Color Picker
-**Goal**: Let users choose drawing colors
+**Goal**: Provide pre-built canvas templates for different use cases
 
-- [ ] Add color picker UI element
-- [ ] Store current color in state
-- [ ] Apply color to new drawings
-- [ ] Show current color indicator
-- [ ] Remember recent colors
+**Depends on**: Milestone 2 (Multi-Canvas Management)
 
-**Benefits**: More expressive human drawings, better visual variety
-
----
-
-#### Drawing Tool Modes
-**Goal**: Support different drawing primitives
-
-- [ ] Freehand (current mode)
-- [ ] Line (click-drag-click)
-- [ ] Rectangle (click-drag)
-- [ ] Circle (click-drag)
-- [ ] Text (click to place, type to input)
-- [ ] Eraser mode
-
-**Benefits**: Faster creation of common shapes, cleaner diagrams
-
-**Technical Notes**:
-- Add toolbar with tool selection
-- Each tool generates appropriate JS code
-- Preview shape while dragging
-
----
-
-#### Brush Settings
-**Goal**: Customize drawing appearance
-
-- [ ] Line width slider
-- [ ] Opacity control
-- [ ] Line cap/join style options
-- [ ] Fill vs stroke toggle
-
-**Benefits**: More control over visual style
-
----
-
-### 3. Persistence & Sessions
-
-#### Save/Load Canvas
-**Goal**: Persist canvas across sessions
-
-- [ ] Add "Save" button to export canvas JS
-- [ ] Download as .js or .json file
-- [ ] Add "Load" button to import saved canvas
-- [ ] Store canvas in localStorage as backup
-- [ ] Auto-save periodically
-
-**Benefits**: Don't lose work, can return to previous canvases
-
-**Technical Notes**:
-- Include both JS code and metadata (dimensions, etc.)
-- Consider version compatibility
-- May want to save conversation history too
-
----
-
-#### Canvas Gallery
-**Goal**: Browse and manage saved canvases
-
-- [ ] Database or file storage for canvases
-- [ ] List view of saved canvases
-- [ ] Thumbnail previews
-- [ ] Search and filter
-- [ ] Delete/rename canvases
-
-**Benefits**: Easy access to previous work, build library of canvases
-
----
-
-### 4. Communication Frames
-
-#### Starter Templates
-**Goal**: Provide pre-built canvas layouts for different use cases
-
-Examples:
-- **Brainstorming**: Areas for ideas, connections, themes
-- **Planning**: Timeline, tasks, milestones
-- **Concept Map**: Central topic with branches
-- **Story Board**: Sequence of panels
-- **Mind Map**: Hierarchical structure
-- **Blank Canvas**: Current default
+- [ ] Define template system (JSON + initial JS)
+- [ ] When creating new canvas, show template picker
+- [ ] Default templates:
+  - **Blank Canvas**: Empty white canvas
+  - **Brainstorming**: Areas for ideas, connections, themes
+  - **Planning**: Timeline, tasks, milestones sections
+  - **Concept Map**: Central topic with branch areas
+  - **Story Board**: Sequence of numbered panels
+  - **Mind Map**: Hierarchical structure with center node
 
 Implementation:
-- [ ] Define template system (JSON + initial JS)
-- [ ] Add template selector at start
-- [ ] "New from template" menu option
-- [ ] Allow saving custom templates
+- [ ] Template selector in "New Canvas" flow
+- [ ] Templates as JS files or JSON configs
+- [ ] Include helper regions/guides in template JS
+- [ ] Allow saving custom templates (future)
 
-**Benefits**: Faster setup for common tasks, clearer structure
-
-**Technical Notes**:
-- Templates are initial canvas JS + layout guides
-- May include helper functions or regions
-- AI should understand template structure
-
----
-
-### 5. Collaboration Features
-
-#### Multi-user Support
-**Goal**: Multiple humans collaborate with AI simultaneously
-
-- [ ] WebSocket for real-time updates
-- [ ] User cursors/indicators
-- [ ] Presence awareness
-- [ ] Conflict resolution for simultaneous edits
-- [ ] User-specific drawing colors
-
-**Benefits**: Team collaboration, shared exploration
+**Benefits**: 
+- Faster setup for common tasks
+- Clear structure guides collaboration
+- AI understands template conventions
 
 **Technical Notes**:
-- Significant architecture change
-- Need session management
-- Consider operational transforms or CRDTs for sync
+- Templates are initial canvas JS + optional metadata
+- May include comments explaining regions
+- AI should be informed of template type in context
 
 ---
 
-#### Export/Share
-**Goal**: Share canvases with others
+### Milestone 4: Web Page Import Tool
 
-- [ ] Export as image (PNG/SVG)
-- [ ] Export as HTML (standalone page)
-- [ ] Generate shareable link
-- [ ] Embed in other pages
-- [ ] Export conversation + canvas as PDF
+#### New AI Tool: import_webpage
+**Goal**: AI can bring external web content into the canvas
 
-**Benefits**: Present work to others, integrate into documents
+Tool Definition:
+```json
+{
+  "name": "import_webpage",
+  "description": "Import a screenshot of a webpage into the canvas at specified position",
+  "parameters": {
+    "url": "string (required) - URL of webpage to import",
+    "x": "number (optional) - X coordinate for top-left corner",
+    "y": "number (optional) - Y coordinate for top-left corner",
+    "width": "number (optional) - Max width to scale image to",
+    "caption": "string (optional) - Caption/label for the imported page"
+  }
+}
+```
 
----
+Implementation:
+- [ ] Define import_webpage tool in API
+- [ ] Backend: Use headless browser (puppeteer) to screenshot URL
+- [ ] Convert screenshot to base64 data URI
+- [ ] Generate canvas JS code to draw image on canvas:
+  ```javascript
+  // Imported webpage: [url]
+  const img_[id] = new Image();
+  img_[id].src = 'data:image/png;base64,[data]';
+  img_[id].onload = () => {
+    ctx.drawImage(img_[id], x, y, width, height);
+  };
+  ```
+- [ ] Handle async image loading in canvas rendering
+- [ ] Add image reference to canvas JS
+- [ ] Safety: Validate URL, set timeout, limit image size
+- [ ] Error handling: Invalid URL, timeout, too large
 
-### 6. AI Capabilities
+**Benefits**:
+- AI can bring in reference material
+- Visual research and analysis
+- Multimodal context building
+- "Show me this website" interactions
 
-#### Improved Visual Understanding
-**Goal**: Help AI better understand and reference canvas content
+**Technical Notes**:
+- Images embedded as data URIs in JS code
+- May need image caching/storage for large images
+- Consider max image size limits
+- Puppeteer adds significant dependency
 
-- [ ] Add coordinate grid overlay (toggle)
-- [ ] Named regions/zones on canvas
-- [ ] Object labeling system
-- [ ] Spatial relationship queries ("what's left of the circle?")
-
-**Benefits**: More precise AI interactions with canvas
-
----
-
-#### Tool Enhancements
-**Goal**: Give AI more sophisticated drawing capabilities
-
-- [ ] Add helper functions to tool (drawCircle, drawText, etc.)
-- [ ] Support animation/tweening
-- [ ] Layer management
-- [ ] Group/transform operations
-
-**Benefits**: AI can create more complex visuals more easily
-
----
-
-### 7. Technical Improvements
-
-#### Performance
-- [ ] Optimize canvas rendering for large/complex canvases
-- [ ] Lazy rendering (only render visible area)
-- [ ] Canvas caching/layers
-- [ ] Throttle server-side rendering
-
----
-
-#### Error Handling
-- [ ] Better error messages for invalid JS
-- [ ] Validation before executing canvas code
-- [ ] Sandboxing for safety
-- [ ] Graceful degradation
-
----
-
-#### Testing
-- [ ] Unit tests for canvas rendering
-- [ ] Integration tests for API endpoints
-- [ ] E2E tests for user flows
-- [ ] Visual regression tests
+**Example Interaction**:
+```
+User: "Show me what the Anthropic homepage looks like"
+AI: [uses import_webpage tool]
+AI: "I've added a screenshot of the Anthropic homepage to the canvas."
+```
 
 ---
 
-### 8. User Experience
+## Removed / Deferred
 
-#### Onboarding
-- [ ] Welcome tutorial/guide
-- [ ] Interactive demo
-- [ ] Example canvases to explore
-- [ ] Tooltips and hints
-
----
-
-#### UI Polish
-- [ ] Keyboard shortcuts
-- [ ] Dark mode
-- [ ] Responsive design for mobile
-- [ ] Accessibility improvements (ARIA labels, keyboard navigation)
-- [ ] Loading states and progress indicators
-- [ ] Toast notifications for actions
+### Not Implementing:
+- ❌ Undo/Redo - Keep rolling forward, don't dwell on past
+- ❌ Drawing tool enhancements (colors, shapes, brushes) - Basic drawing is sufficient
+- ❌ Multi-user collaboration - Single user + AI is the focus
+- ❌ Export/share features - Not needed yet
+- ❌ AI capability enhancements - Current capabilities sufficient
+- ❌ Technical improvements (testing, performance) - Polish later
+- ❌ UI polish / onboarding - Keep it simple
 
 ---
 
-#### Settings
-- [ ] User preferences (auto-save, theme, etc.)
-- [ ] Canvas defaults (size, background color)
-- [ ] AI behavior settings (verbosity, tool usage)
+## Implementation Order
 
----
+### Phase 1: Foundation
+1. **Milestone 2**: Multi-Canvas Management (persistence, switching, deletion)
+2. **Milestone 3**: Communication Frame Starters (depends on M2)
 
-## Prioritization
-
-### High Priority (Next Steps)
-1. **Undo/Redo** - Essential for usability
-2. **Color Picker** - Quick win for expressiveness
-3. **Save/Load** - Don't lose work
-4. **Communication Frames** - Core to the vision
-
-### Medium Priority
-5. Pan and Zoom
-6. Drawing Tool Modes
-7. Export/Share
-8. UI Polish
-
-### Low Priority / Future
-9. Multi-user Support
-10. Advanced AI Tools
-11. Gallery/Management
-
----
-
-## Implementation Notes
-
-When implementing enhancements:
-- Maintain the JS-as-source-of-truth architecture
-- Keep the dual representation (visual + code)
-- Ensure AI can understand new features through context
-- Test with AI to verify it can use new capabilities
-- Update system prompt as needed
-- Document changes in canvas JS comments
+### Phase 2: Advanced Features  
+3. **Milestone 1**: Pan and Zoom with Focus Context
+4. **Milestone 4**: Web Page Import Tool
 
 ---
 
 ## Open Questions
 
-- Should we support multiple canvases in one session?
-- How to handle very large canvases (memory, API limits)?
-- Should drawing tools generate more semantic JS vs raw commands?
-- How to balance feature richness with simplicity?
-- Should we add a layer/object model or stay purely code-based?
+**Multi-Canvas**:
+- Should conversation history be per-canvas or global?
+  - **Decision**: Global - chat context doesn't change, only canvas changes
+- How to handle canvas thumbnails (generation, storage)?
+- What metadata to store per canvas?
+- Backend storage or localStorage for MVP?
+
+**Pan/Zoom**:
+- How to scale down large canvases for "full canvas" screenshot?
+- Maximum canvas size before scaling?
+- How to communicate viewport bounds to AI?
+
+**Web Import**:
+- Should we cache imported images separately or always embed?
+- How to handle dynamic/interactive pages?
+- Should AI be able to import multiple pages at once?
+- Rate limiting for URL imports?
 
 ---
 
 ## Success Metrics
 
-For each enhancement, consider:
-- **Usability**: Does it make the canvas easier to use?
-- **Expressiveness**: Does it enable new types of collaboration?
-- **AI Integration**: Can the AI understand and use it?
-- **Performance**: Does it maintain responsive interaction?
+For each enhancement:
+- **Usability**: Does it make collaboration more fluid?
+- **Expressiveness**: Does it enable new types of interaction?
+- **AI Integration**: Can the AI understand and use it naturally?
 - **Simplicity**: Does it fit the minimalist aesthetic?
+- **Forward Motion**: Does it support "keep rolling forward" philosophy?
 
 ---
 
