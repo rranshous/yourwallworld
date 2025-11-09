@@ -18,6 +18,22 @@ const anthropic = new Anthropic({
 
 const MODEL_STRING = 'claude-sonnet-4-5-20250929';
 
+// Tool definition for canvas drawing
+const CANVAS_TOOL = {
+  name: 'update_canvas',
+  description: 'Add drawing commands to the shared canvas. Provide raw JavaScript code that uses the canvas context (ctx) to draw. The code will be appended to the existing canvas JavaScript. You can draw shapes, text, lines, etc. The canvas and ctx variables are available.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      javascript_code: {
+        type: 'string',
+        description: 'Raw JavaScript code using canvas context (ctx) to draw. Examples: ctx.fillStyle = "#ff0000"; ctx.fillRect(100, 100, 50, 50); or ctx.strokeStyle = "#0000ff"; ctx.beginPath(); ctx.arc(200, 200, 30, 0, Math.PI * 2); ctx.stroke();'
+      }
+    },
+    required: ['javascript_code']
+  }
+};
+
 // System prompt explaining the shared canvas concept
 const SYSTEM_PROMPT = `You are collaborating with a human in a shared communication space called "Context Canvas."
 
@@ -34,7 +50,9 @@ Both representations help you understand the canvas from different perspectives 
 
 The human can see the canvas visually. You can see both the visual representation and the code that creates it.
 
-This is a collaborative space - be aware of what's on the canvas and reference it naturally in conversation.`;
+You have a tool called "update_canvas" that lets you add drawing commands to the canvas. Use it to draw shapes, text, or any visual elements. The JavaScript code you provide will be appended to the existing canvas code.
+
+This is a collaborative space - be aware of what's on the canvas and reference it naturally in conversation. When asked to draw something, use the update_canvas tool.`;
 
 // Store conversation history
 interface Message {
@@ -58,12 +76,16 @@ app.post('/api/chat', async (req, res) => {
   }
   
   try {
-    // Build user message content with canvas context
+    // Track updated canvas JS through tool uses
+    let currentCanvasJS = canvasJS || '';
+    let currentScreenshot = canvasScreenshot;
+    
+    // Build initial user message content with canvas context
     const userContent: any[] = [];
     
     // Add canvas screenshot if available
-    if (canvasScreenshot && canvasScreenshot.startsWith('data:image')) {
-      const base64Data = canvasScreenshot.split(',')[1];
+    if (currentScreenshot && currentScreenshot.startsWith('data:image')) {
+      const base64Data = currentScreenshot.split(',')[1];
       userContent.push({
         type: 'image',
         source: {
@@ -75,10 +97,10 @@ app.post('/api/chat', async (req, res) => {
     }
     
     // Add canvas JS code if available
-    if (canvasJS) {
+    if (currentCanvasJS) {
       userContent.push({
         type: 'text',
-        text: `Current Canvas JavaScript:\n\`\`\`javascript\n${canvasJS}\n\`\`\``
+        text: `Current Canvas JavaScript:\n\`\`\`javascript\n${currentCanvasJS}\n\`\`\``
       });
     }
     
@@ -94,26 +116,87 @@ app.post('/api/chat', async (req, res) => {
       content: userContent
     });
     
-    // Call Anthropic API
-    const response = await anthropic.messages.create({
-      model: MODEL_STRING,
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      messages: conversationHistory.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }))
-    });
+    // Tool use loop - keep calling API while model wants to use tools
+    let finalResponse: any = null;
+    let toolUses: any[] = [];
     
-    // Extract text response
-    const textContent = response.content.find(c => c.type === 'text');
+    while (true) {
+      // Call Anthropic API
+      const response = await anthropic.messages.create({
+        model: MODEL_STRING,
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        tools: [CANVAS_TOOL],
+        messages: conversationHistory.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }))
+      });
+      
+      finalResponse = response;
+      
+      // Check if response contains tool_use blocks
+      const toolUseBlocks = response.content.filter((block: any) => block.type === 'tool_use');
+      
+      if (toolUseBlocks.length === 0) {
+        // No more tool uses, we're done
+        break;
+      }
+      
+      // Add assistant's response (with tool_use blocks) to history
+      conversationHistory.push({
+        role: 'assistant',
+        content: response.content
+      });
+      
+      // Execute tools and update canvas JS
+      for (const toolUse of toolUseBlocks) {
+        if ((toolUse as any).name === 'update_canvas') {
+          const jsCode = (toolUse as any).input.javascript_code;
+          currentCanvasJS += '\n' + jsCode;
+          toolUses.push({ id: (toolUse as any).id, code: jsCode });
+        }
+      }
+      
+      // Build tool result message with updated canvas context
+      const toolResultContent: any[] = [];
+      
+      // Add tool_result blocks
+      for (const toolUse of toolUseBlocks) {
+        toolResultContent.push({
+          type: 'tool_result',
+          tool_use_id: (toolUse as any).id,
+          content: 'Drawing commands added to canvas successfully.'
+        });
+      }
+      
+      // Add updated canvas screenshot (client will need to generate this)
+      // For now, we'll send back the updated JS and let client handle screenshot
+      
+      // Add updated canvas JS
+      toolResultContent.push({
+        type: 'text',
+        text: `Updated Canvas JavaScript:\n\`\`\`javascript\n${currentCanvasJS}\n\`\`\``
+      });
+      
+      // Add tool result message to history
+      conversationHistory.push({
+        role: 'user',
+        content: toolResultContent
+      });
+    }
+    
+    // Extract final text response
+    const textContent = finalResponse.content.find((c: any) => c.type === 'text');
     const assistantMessage = textContent && 'text' in textContent ? textContent.text : '';
     
-    // Add assistant response to history (as simple text)
-    conversationHistory.push({
-      role: 'assistant',
-      content: assistantMessage
-    });
+    // Add final assistant response to history (as simple text)
+    if (assistantMessage) {
+      conversationHistory.push({
+        role: 'assistant',
+        content: assistantMessage
+      });
+    }
     
     // Keep history manageable (last 10 messages = 5 exchanges)
     if (conversationHistory.length > 10) {
@@ -122,7 +205,9 @@ app.post('/api/chat', async (req, res) => {
     
     res.json({
       success: true,
-      response: assistantMessage
+      response: assistantMessage,
+      canvasJS: currentCanvasJS,
+      toolUses: toolUses.map(t => ({ code: t.code }))
     });
     
   } catch (error: any) {

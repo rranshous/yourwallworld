@@ -86,6 +86,17 @@ async function sendMessage() {
         
         const data = await response.json();
         
+        // If there were tool uses, show them in the chat
+        if (data.toolUses && data.toolUses.length > 0) {
+            const toolMessage = `🔧 Used drawing tool (${data.toolUses.length} operation${data.toolUses.length > 1 ? 's' : ''})`;
+            addMessage('assistant', toolMessage);
+        }
+        
+        // Update canvas with new JS if provided
+        if (data.canvasJS && data.canvasJS !== canvasJS) {
+            setCanvasJS(data.canvasJS);
+        }
+        
         // Add assistant response to UI
         if (data.response) {
             addMessage('assistant', data.response);
