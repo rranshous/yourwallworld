@@ -132,24 +132,29 @@ Future possibilities include:
 
 ---
 
-#### Milestone 5: Simple Draw Tool for Human
+#### Milestone 5: Simple Draw Tool for Human ✅
 **Goal**: Human can draw on canvas with mouse
 
-- [ ] Implement mouse event handlers
-  - [ ] mousedown, mousemove, mouseup
-  - [ ] Track drawing state
-- [ ] Create simple drawing tool (freehand line drawing)
-- [ ] Update canvas JavaScript as drawing happens
-  - [ ] Add drawn paths/shapes to canvas state structure
-  - [ ] Ensure render function can replay these additions
-- [ ] Test that drawn content persists and appears in canvas JS
+- [x] Implement mouse event handlers
+  - [x] mousedown, mousemove, mouseup
+  - [x] Track drawing state
+- [x] Create simple drawing tool (freehand line drawing)
+- [x] Update canvas JavaScript as drawing happens
+  - [x] Add drawn paths/shapes to canvas JS code
+  - [x] Ensure render function can replay these additions
+- [x] Test that drawn content persists and appears in canvas JS
 
 **Deliverable**: You can draw on canvas with mouse, and those drawings are captured in the canvas JavaScript
 
+**Status**: COMPLETE - Mouse drawing works, updates canvas JS in real-time
+
 **Technical Notes**:
-- Drawing tool adds data to canvas state (e.g., array of paths with points)
-- Canvas re-renders from state to include new drawings
-- State structure must be inspectable/modifiable by both human code and AI
+- Drawing tool captures mouse paths and generates JS code
+- Each completed stroke appends new JS commands to `canvasJS`
+- Live drawing preview shows strokes as you draw
+- After mouseup, path is converted to JS code and appended
+- Debug panel shows all drawing code
+- Orange stroke color (#ff6b35) with 3px width
 
 ---
 
@@ -184,22 +189,23 @@ Future possibilities include:
 ## Implement
 
 ### Current Status
-**Active Milestone**: Simple Draw Tool for Human (Milestone 5)
+**Active Milestone**: Enable Model to Draw (Milestone 6)
 
 **Completed**:
 - ✅ Milestone 1: Foundation
 - ✅ Milestone 2: Simple Chat
 - ✅ Milestone 3: Canvas
 - ✅ Milestone 4: Canvas as Context
+- ✅ Milestone 5: Simple Draw Tool for Human
 
 **In Progress**:
 - None
 
 **Next Steps**:
-1. Implement mouse event handlers for drawing
-2. Update canvas JS as drawing happens
-3. Ensure drawn content updates debug panel
-4. Test that AI can see drawings
+1. Define LM tool for canvas modification (accepts raw JS)
+2. Implement tool handler on backend
+3. Update frontend to receive canvas JS from server
+4. Test full bidirectional drawing cycle
 
 ---
 
@@ -258,6 +264,21 @@ Future possibilities include:
 - Updated conversation history to support multi-modal content (text + images)
 - Reduced history retention to 10 messages (5 exchanges) due to image size
 - AI can now see both visual representation and code structure of canvas
+
+#### [Date: 2025-11-09] - Milestone 5: Simple Draw Tool for Human Complete ✅
+- Implemented mouse-based drawing tool on canvas
+  - Added mousedown, mousemove, mouseup, mouseleave event listeners
+  - Track drawing state and capture path coordinates
+  - Live preview shows strokes as you draw
+- Drawing generates JavaScript code automatically
+  - Each completed stroke converts to ctx drawing commands
+  - Generated JS appended to `canvasJS` string
+  - Code includes moveTo and lineTo commands for path
+- Canvas JS updates in real-time
+  - Debug panel shows all drawing code
+  - Re-renders after each stroke to persist drawings
+- Orange stroke color (#ff6b35), 3px width, round caps and joins
+- Coordinate system properly scaled to handle canvas DPR scaling
 
 ---
 
