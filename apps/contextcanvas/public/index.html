@@ -55,6 +55,16 @@
             z-index: 1000;
             font-family: monospace;
             font-size: 12px;
+            transition: max-height 0.3s ease;
+        }
+        
+        #debugPanel.hidden {
+            max-height: 42px;
+            overflow: hidden;
+        }
+        
+        #debugPanel.hidden #canvasCode {
+            display: none;
         }
 
         #debugHeader {
@@ -62,6 +72,20 @@
             background: #1e1e1e;
             border-bottom: 1px solid #3e3e42;
             font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #debugHeader:hover {
+            background: #2a2a2a;
+        }
+        
+        #debugToggle {
+            font-size: 14px;
+            color: #858585;
         }
 
         #canvasCode {
@@ -85,6 +109,15 @@
             border-bottom: 1px solid #3e3e42;
             font-weight: 600;
             color: #cccccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #contextCounter {
+            font-size: 11px;
+            color: #858585;
+            font-weight: normal;
         }
         
         #chatMessages {
@@ -201,15 +234,19 @@
     <div id="app">
         <div id="mainArea">
             <canvas id="mainCanvas" width="1600" height="900" style="background: #fff; border: 1px solid #333; display: block; max-width: 100%; height: auto;"></canvas>
-            <div id="debugPanel">
-                <div id="debugHeader">Canvas JS</div>
+            <div id="debugPanel" class="hidden">
+                <div id="debugHeader">
+                    <span>Canvas JS</span>
+                    <span id="debugToggle">▼</span>
+                </div>
                 <pre id="canvasCode">// Canvas JavaScript will appear here</pre>
             </div>
         </div>
         
         <div id="chatSidebar">
             <div id="chatHeader">
-                Chat
+                <span>Chat</span>
+                <span id="contextCounter">0 tokens</span>
             </div>
             <div id="chatMessages">
                 <!-- Messages will appear here -->

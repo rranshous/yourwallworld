@@ -301,7 +301,8 @@ app.post('/api/chat', async (req, res) => {
       success: true,
       response: assistantMessage,
       canvasJS: currentCanvasJS,
-      toolUses: toolUses.map(t => ({ code: t.code }))
+      toolUses: toolUses.map(t => ({ code: t.code })),
+      usage: finalResponse.usage // Include token usage from last API call
     });
     
   } catch (error: any) {

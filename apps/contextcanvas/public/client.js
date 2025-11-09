@@ -13,6 +13,26 @@ fetch('/api/health')
         document.getElementById('statusText').style.color = '#f48771';
     });
 
+// Debug panel toggle
+const debugPanel = document.getElementById('debugPanel');
+const debugHeader = document.getElementById('debugHeader');
+const debugToggle = document.getElementById('debugToggle');
+
+debugHeader.addEventListener('click', () => {
+    debugPanel.classList.toggle('hidden');
+    debugToggle.textContent = debugPanel.classList.contains('hidden') ? '▼' : '▲';
+});
+
+// Context counter
+const contextCounter = document.getElementById('contextCounter');
+
+function updateContextCounter(usage) {
+    if (usage && usage.input_tokens) {
+        const total = usage.input_tokens + (usage.output_tokens || 0);
+        contextCounter.textContent = `${usage.input_tokens.toLocaleString()} in / ${(usage.output_tokens || 0).toLocaleString()} out (${total.toLocaleString()} total)`;
+    }
+}
+
 // Chat functionality
 const messageInput = document.getElementById('messageInput');
 const sendButton = document.getElementById('sendButton');
@@ -99,6 +119,11 @@ async function sendMessage() {
         
         // Remove loading indicator
         loadingMsg.remove();
+        
+        // Update context counter if usage data is available
+        if (data.usage) {
+            updateContextCounter(data.usage);
+        }
         
         // If there were tool uses, show them in the chat
         if (data.toolUses && data.toolUses.length > 0) {
