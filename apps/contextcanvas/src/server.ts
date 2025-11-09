@@ -2,7 +2,6 @@ import express from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import dotenv from 'dotenv';
 import path from 'path';
-import { createCanvas } from 'canvas';
 import { chromium } from 'playwright';
 
 dotenv.config();
@@ -39,7 +38,7 @@ const APPEND_TO_CANVAS_TOOL = {
 // Tool definition for canvas replacement (replace mode)
 const REPLACE_CANVAS_TOOL = {
   name: 'replace_canvas',
-  description: 'Replace the entire canvas with new code. This REMOVES all existing content and starts fresh. Use this to reorganize, refactor, or fix mistakes. LIMITATION: This will lose any imported webpage images. If you need to preserve imported images, use append_to_canvas instead.',
+  description: 'Replace the entire canvas with new code. This REMOVES all existing content and starts fresh. Use this to reorganize, refactor, or fix mistakes. All canvas elements including images will be preserved in the new code.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -104,7 +103,7 @@ You have three tools available:
 
 1. **append_to_canvas**: Add new drawing commands to the existing canvas. Use this to layer new content on top of what's already there. The code you provide will be appended after all existing canvas code. This is the safe, additive way to build up the canvas.
 
-2. **replace_canvas**: Replace the entire canvas with new code. Use this to reorganize, refactor, or start fresh. WARNING: This removes all existing content, including any imported webpage images. Use append_to_canvas if you need to preserve images.
+2. **replace_canvas**: Replace the entire canvas with new code. Use this to reorganize, refactor, or start fresh. This removes all existing content, so make sure to include everything you want in the new code.
 
 3. **import_webpage**: Import a screenshot of any webpage into the canvas. Provide a URL and optional position/viewport size. This lets you bring external web content into the shared space for reference and discussion.
 
@@ -118,44 +117,90 @@ interface Message {
 
 let conversationHistory: Message[] = [];
 
-// Function to render canvas JS on server and return base64 screenshot
+// Function to render canvas JS on server using real browser and return base64 screenshot
 async function renderCanvasOnServer(canvasJSCode: string, width: number, height: number): Promise<string> {
   try {
-    console.log(`Rendering canvas on server: ${width}x${height}`);
+    console.log(`Rendering canvas in browser: ${width}x${height}`);
     
-    // Create a canvas
-    const canvas = createCanvas(width, height);
+    // Create HTML page with canvas
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { margin: 0; padding: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="${width}" height="${height}"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     
-    // Polyfill Image for server-side rendering (node-canvas provides this, but need to import)
-    const { Image } = require('canvas');
+    // Execute user's canvas code
+    ${canvasJSCode}
+  </script>
+</body>
+</html>
+`;
     
-    // Execute the canvas JS code
-    // Note: We need to be careful with eval, but this is our own generated code
-    eval(canvasJSCode);
+    // Render with Playwright
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: width, height: height });
+    await page.setContent(html);
     
-    // Wait a bit for Image onload callbacks to fire (data URIs load fast from memory)
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Wait for images to load and animations to settle
+    await page.waitForTimeout(500);
     
-    // Convert to base64 PNG
-    const buffer = canvas.toBuffer('image/png');
-    const base64 = buffer.toString('base64');
+    // Screenshot the canvas element
+    const canvasElement = await page.$('#canvas');
+    if (!canvasElement) {
+      throw new Error('Canvas element not found');
+    }
     
-    console.log('Server-side rendering complete, image size:', buffer.length, 'bytes');
+    const screenshot = await canvasElement.screenshot({ type: 'png' });
+    await browser.close();
+    
+    const base64 = screenshot.toString('base64');
+    console.log('Browser rendering complete, image size:', screenshot.length, 'bytes');
     
     return `data:image/png;base64,${base64}`;
   } catch (error: any) {
-    console.error('Error rendering canvas on server:', error.message);
-    // Return a blank canvas on error
-    const canvas = createCanvas(width, height);
+    console.error('Error rendering canvas in browser:', error.message);
+    
+    // Return error canvas using browser too (for consistency)
+    try {
+      const errorHtml = `
+<!DOCTYPE html>
+<html>
+<body>
+  <canvas id="canvas" width="${width}" height="${height}"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, ${width}, ${height});
     ctx.fillStyle = '#f48771';
     ctx.font = '14px Arial';
-    ctx.fillText('Error rendering: ' + error.message, 20, 20);
-    const buffer = canvas.toBuffer('image/png');
-    return `data:image/png;base64,${buffer.toString('base64')}`;
+    ctx.fillText('Error rendering: ${error.message.replace(/'/g, "\\'")}', 20, 20);
+  </script>
+</body>
+</html>
+`;
+      const browser = await chromium.launch({ headless: true });
+      const page = await browser.newPage();
+      await page.setContent(errorHtml);
+      const canvasElement = await page.$('#canvas');
+      const screenshot = await canvasElement!.screenshot({ type: 'png' });
+      await browser.close();
+      return `data:image/png;base64,${screenshot.toString('base64')}`;
+    } catch {
+      // If even error rendering fails, return empty string
+      return '';
+    }
   }
 }
 
@@ -420,11 +465,7 @@ const ${imageId} = new Image();
 ${imageId}.onload = function() {
   ctx.drawImage(${imageId}, ${x}, ${y});
 };
-${imageId}.src = '${imageDataUri}';
-// For server-side rendering: node-canvas loads synchronously, so draw immediately if complete
-if (${imageId}.complete) {
-  ctx.drawImage(${imageId}, ${x}, ${y});
-}`;
+${imageId}.src = '${imageDataUri}';`;
             
             currentCanvasJS += '\n' + imageJS;
             toolUses.push({ id: (toolUse as any).id, code: imageJS, type: 'import_webpage', url });
