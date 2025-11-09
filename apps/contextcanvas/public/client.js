@@ -37,6 +37,8 @@ function addMessage(role, content) {
     
     // Scroll to bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    return messageDiv;
 }
 
 async function sendMessage() {
