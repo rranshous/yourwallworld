@@ -18,10 +18,28 @@ const anthropic = new Anthropic({
 
 const MODEL_STRING = 'claude-sonnet-4-5-20250929';
 
+// System prompt explaining the shared canvas concept
+const SYSTEM_PROMPT = `You are collaborating with a human in a shared communication space called "Context Canvas."
+
+The canvas is a visual workspace where both you and the human can see and contribute. It serves as:
+- A shared understanding space
+- A place for visual collaboration
+- A medium for expressing ideas, thoughts, and concepts
+
+You will receive:
+1. A screenshot of the current canvas (what it looks like visually)
+2. The JavaScript code that renders the canvas (the precise structure)
+
+Both representations help you understand the canvas from different perspectives - visual appearance and programmatic structure.
+
+The human can see the canvas visually. You can see both the visual representation and the code that creates it.
+
+This is a collaborative space - be aware of what's on the canvas and reference it naturally in conversation.`;
+
 // Store conversation history
 interface Message {
   role: 'user' | 'assistant';
-  content: string;
+  content: string | any[]; // Can be text or array of content blocks
 }
 
 let conversationHistory: Message[] = [];
@@ -33,24 +51,54 @@ app.get('/api/health', (req, res) => {
 
 // Chat endpoint
 app.post('/api/chat', async (req, res) => {
-  const { message } = req.body;
+  const { message, canvasScreenshot, canvasJS } = req.body;
   
   if (!message) {
     return res.status(400).json({ error: 'Message is required' });
   }
   
   try {
+    // Build user message content with canvas context
+    const userContent: any[] = [];
+    
+    // Add canvas screenshot if available
+    if (canvasScreenshot && canvasScreenshot.startsWith('data:image')) {
+      const base64Data = canvasScreenshot.split(',')[1];
+      userContent.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: base64Data
+        }
+      });
+    }
+    
+    // Add canvas JS code if available
+    if (canvasJS) {
+      userContent.push({
+        type: 'text',
+        text: `Current Canvas JavaScript:\n\`\`\`javascript\n${canvasJS}\n\`\`\``
+      });
+    }
+    
+    // Add user's text message
+    userContent.push({
+      type: 'text',
+      text: message
+    });
+    
     // Add user message to history
     conversationHistory.push({
       role: 'user',
-      content: message
+      content: userContent
     });
     
     // Call Anthropic API
     const response = await anthropic.messages.create({
       model: MODEL_STRING,
       max_tokens: 4096,
-      system: 'You are a helpful AI assistant collaborating with a human in a shared communication space called Context Canvas.',
+      system: SYSTEM_PROMPT,
       messages: conversationHistory.map(msg => ({
         role: msg.role,
         content: msg.content
@@ -61,15 +109,15 @@ app.post('/api/chat', async (req, res) => {
     const textContent = response.content.find(c => c.type === 'text');
     const assistantMessage = textContent && 'text' in textContent ? textContent.text : '';
     
-    // Add assistant response to history
+    // Add assistant response to history (as simple text)
     conversationHistory.push({
       role: 'assistant',
       content: assistantMessage
     });
     
-    // Keep history manageable (last 20 messages)
-    if (conversationHistory.length > 20) {
-      conversationHistory = conversationHistory.slice(-20);
+    // Keep history manageable (last 10 messages = 5 exchanges)
+    if (conversationHistory.length > 10) {
+      conversationHistory = conversationHistory.slice(-10);
     }
     
     res.json({

@@ -55,12 +55,29 @@ async function sendMessage() {
     messageInput.disabled = true;
     
     try {
+        // Capture canvas screenshot
+        let canvasScreenshot = null;
+        let canvasJSCode = null;
+        
+        if (canvas) {
+            try {
+                canvasScreenshot = canvas.toDataURL('image/png');
+                canvasJSCode = canvasJS;
+            } catch (error) {
+                console.error('Error capturing canvas:', error);
+            }
+        }
+        
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ 
+                message,
+                canvasScreenshot,
+                canvasJS: canvasJSCode
+            })
         });
         
         if (!response.ok) {
