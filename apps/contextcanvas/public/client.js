@@ -111,13 +111,74 @@ canvasPicker.addEventListener('change', (e) => {
     }
 });
 
-newCanvasButton.addEventListener('click', () => {
-    const name = prompt('Enter canvas name:', 'New Canvas');
-    if (name) {
-        saveCurrentCanvas(); // Save current before creating new
-        const id = createCanvas(name);
-        loadCanvas(id);
+// Template picker modal
+const templateModal = document.getElementById('templateModal');
+const closeTemplateButton = document.getElementById('closeTemplateButton');
+const templateGrid = document.getElementById('templateGrid');
+
+function showTemplatePicker() {
+    // Populate template grid
+    templateGrid.innerHTML = '';
+    
+    Object.keys(CANVAS_TEMPLATES).forEach(templateId => {
+        const template = CANVAS_TEMPLATES[templateId];
+        
+        const card = document.createElement('div');
+        card.style.cssText = 'background: #2d2d30; border: 2px solid #3e3e42; border-radius: 6px; padding: 15px; cursor: pointer; transition: all 0.2s;';
+        card.onmouseenter = () => {
+            card.style.borderColor = '#0e639c';
+            card.style.background = '#383838';
+        };
+        card.onmouseleave = () => {
+            card.style.borderColor = '#3e3e42';
+            card.style.background = '#2d2d30';
+        };
+        
+        const title = document.createElement('div');
+        title.style.cssText = 'color: #4ec9b0; font-weight: 600; font-size: 16px; margin-bottom: 8px;';
+        title.textContent = template.name;
+        
+        const desc = document.createElement('div');
+        desc.style.cssText = 'color: #cccccc; font-size: 13px;';
+        desc.textContent = template.description;
+        
+        card.appendChild(title);
+        card.appendChild(desc);
+        
+        card.addEventListener('click', () => {
+            const name = prompt('Enter canvas name:', template.name);
+            if (name) {
+                saveCurrentCanvas();
+                const id = createCanvas(name, templateId);
+                loadCanvas(id);
+                templateModal.style.display = 'none';
+            }
+        });
+        
+        templateGrid.appendChild(card);
+    });
+    
+    templateModal.style.display = 'flex';
+}
+
+closeTemplateButton.addEventListener('click', () => {
+    templateModal.style.display = 'none';
+});
+
+templateModal.addEventListener('click', (e) => {
+    if (e.target === templateModal) {
+        templateModal.style.display = 'none';
     }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && templateModal.style.display === 'flex') {
+        templateModal.style.display = 'none';
+    }
+});
+
+newCanvasButton.addEventListener('click', () => {
+    showTemplatePicker();
 });
 
 deleteCanvasButton.addEventListener('click', () => {
@@ -241,6 +302,10 @@ async function sendMessage() {
         // Get current canvas info
         const currentCanvas = getCurrentCanvas();
         const canvasName = currentCanvas ? currentCanvas.name : 'Unknown Canvas';
+        const canvasTemplate = currentCanvas ? currentCanvas.template : 'blank';
+        const templateName = canvasTemplate && CANVAS_TEMPLATES[canvasTemplate] 
+            ? CANVAS_TEMPLATES[canvasTemplate].name 
+            : 'Custom';
         
         const response = await fetch('/api/chat', {
             method: 'POST',
@@ -253,6 +318,7 @@ async function sendMessage() {
                 viewportScreenshot,
                 canvasJS: canvasJSCode,
                 canvasName: canvasName,
+                canvasTemplate: templateName,
                 canvasDimensions,
                 viewport: viewportData
             })
@@ -326,6 +392,383 @@ messageInput.addEventListener('keydown', (e) => {
 messageInput.focus();
 
 // -------------------------
+// Canvas Templates
+// -------------------------
+
+const CANVAS_TEMPLATES = {
+    blank: {
+        name: 'Blank Canvas',
+        description: 'Empty white canvas for freeform creation',
+        generateJS: (width, height) => `
+// Clear and set background
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Canvas boundary (so you can see edges when zoomed out)
+ctx.strokeStyle = '#cccccc';
+ctx.lineWidth = 2;
+ctx.strokeRect(0, 0, canvas.width, canvas.height);
+`
+    },
+    brainstorm: {
+        name: 'Brainstorming',
+        description: 'Areas for ideas, connections, and themes',
+        generateJS: (width, height) => `
+// Clear and set background
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Canvas boundary
+ctx.strokeStyle = '#cccccc';
+ctx.lineWidth = 2;
+ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+// --- Brainstorming Template ---
+// Three sections: Ideas, Connections, Themes
+
+// Ideas section (left)
+ctx.strokeStyle = '#4fc3f7';
+ctx.lineWidth = 2;
+ctx.setLineDash([5, 5]);
+ctx.strokeRect(20, 20, 450, canvas.height - 40);
+ctx.setLineDash([]);
+
+ctx.fillStyle = '#4fc3f7';
+ctx.font = 'bold 18px Arial';
+ctx.fillText('💡 IDEAS', 30, 50);
+
+// Connections section (middle)
+ctx.strokeStyle = '#9c27b0';
+ctx.lineWidth = 2;
+ctx.setLineDash([5, 5]);
+ctx.strokeRect(490, 20, 450, canvas.height - 40);
+ctx.setLineDash([]);
+
+ctx.fillStyle = '#9c27b0';
+ctx.font = 'bold 18px Arial';
+ctx.fillText('🔗 CONNECTIONS', 500, 50);
+
+// Themes section (right)
+ctx.strokeStyle = '#ff9800';
+ctx.lineWidth = 2;
+ctx.setLineDash([5, 5]);
+ctx.strokeRect(960, 20, 450, canvas.height - 40);
+ctx.setLineDash([]);
+
+ctx.fillStyle = '#ff9800';
+ctx.font = 'bold 18px Arial';
+ctx.fillText('🎨 THEMES', 970, 50);
+`
+    },
+    planning: {
+        name: 'Planning',
+        description: 'Timeline, tasks, and milestones sections',
+        generateJS: (width, height) => `
+// Clear and set background
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Canvas boundary
+ctx.strokeStyle = '#cccccc';
+ctx.lineWidth = 2;
+ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+// --- Planning Template ---
+// Timeline at top, Tasks below, Milestones at bottom
+
+// Timeline section
+ctx.fillStyle = '#e3f2fd';
+ctx.fillRect(20, 20, canvas.width - 40, 150);
+ctx.strokeStyle = '#2196f3';
+ctx.lineWidth = 2;
+ctx.strokeRect(20, 20, canvas.width - 40, 150);
+
+ctx.fillStyle = '#2196f3';
+ctx.font = 'bold 20px Arial';
+ctx.fillText('📅 TIMELINE', 30, 50);
+
+// Draw timeline arrow
+ctx.strokeStyle = '#2196f3';
+ctx.lineWidth = 3;
+ctx.beginPath();
+ctx.moveTo(30, 120);
+ctx.lineTo(canvas.width - 50, 120);
+ctx.stroke();
+// Arrow head
+ctx.beginPath();
+ctx.moveTo(canvas.width - 50, 120);
+ctx.lineTo(canvas.width - 65, 113);
+ctx.lineTo(canvas.width - 65, 127);
+ctx.closePath();
+ctx.fillStyle = '#2196f3';
+ctx.fill();
+
+// Tasks section
+ctx.fillStyle = '#fff3e0';
+ctx.fillRect(20, 190, canvas.width - 40, 380);
+ctx.strokeStyle = '#ff9800';
+ctx.lineWidth = 2;
+ctx.strokeRect(20, 190, canvas.width - 40, 380);
+
+ctx.fillStyle = '#ff9800';
+ctx.font = 'bold 20px Arial';
+ctx.fillText('✓ TASKS', 30, 220);
+
+// Milestones section
+ctx.fillStyle = '#e8f5e9';
+ctx.fillRect(20, 590, canvas.width - 40, 150);
+ctx.strokeStyle = '#4caf50';
+ctx.lineWidth = 2;
+ctx.strokeRect(20, 590, canvas.width - 40, 150);
+
+ctx.fillStyle = '#4caf50';
+ctx.font = 'bold 20px Arial';
+ctx.fillText('🎯 MILESTONES', 30, 620);
+`
+    },
+    conceptmap: {
+        name: 'Concept Map',
+        description: 'Central topic with branch areas for subtopics',
+        generateJS: (width, height) => `
+// Clear and set background
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Canvas boundary
+ctx.strokeStyle = '#cccccc';
+ctx.lineWidth = 2;
+ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+// --- Concept Map Template ---
+// Central circle with radiating connection lines
+
+const centerX = canvas.width / 2;
+const centerY = canvas.height / 2;
+
+// Draw connection lines (8 directions)
+ctx.strokeStyle = '#b0bec5';
+ctx.lineWidth = 2;
+ctx.setLineDash([10, 5]);
+
+const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+angles.forEach(angle => {
+    const rad = angle * Math.PI / 180;
+    const x1 = centerX + Math.cos(rad) * 100;
+    const y1 = centerY + Math.sin(rad) * 100;
+    const x2 = centerX + Math.cos(rad) * 350;
+    const y2 = centerY + Math.sin(rad) * 350;
+    
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+});
+
+ctx.setLineDash([]);
+
+// Central topic circle
+ctx.fillStyle = '#5c6bc0';
+ctx.beginPath();
+ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.strokeStyle = '#3f51b5';
+ctx.lineWidth = 3;
+ctx.stroke();
+
+ctx.fillStyle = '#ffffff';
+ctx.font = 'bold 18px Arial';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('CENTRAL', centerX, centerY - 10);
+ctx.fillText('TOPIC', centerX, centerY + 10);
+
+// Helper circles for subtopics
+const positions = [
+    {x: centerX + 350, y: centerY, label: 'Subtopic'},
+    {x: centerX - 350, y: centerY, label: 'Subtopic'},
+    {x: centerX, y: centerY - 350, label: 'Subtopic'},
+    {x: centerX, y: centerY + 350, label: 'Subtopic'}
+];
+
+positions.forEach(pos => {
+    ctx.fillStyle = '#e3f2fd';
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 60, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = '#90caf9';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    ctx.fillStyle = '#1976d2';
+    ctx.font = '14px Arial';
+    ctx.fillText(pos.label, pos.x, pos.y);
+});
+
+// Reset text alignment
+ctx.textAlign = 'left';
+ctx.textBaseline = 'alphabetic';
+`
+    },
+    storyboard: {
+        name: 'Story Board',
+        description: 'Sequence of numbered panels for visual storytelling',
+        generateJS: (width, height) => `
+// Clear and set background
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Canvas boundary
+ctx.strokeStyle = '#cccccc';
+ctx.lineWidth = 2;
+ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+// --- Story Board Template ---
+// 6 panels arranged in 2 rows
+
+const panelWidth = 450;
+const panelHeight = 350;
+const startX = 50;
+const startY = 50;
+const gapX = 50;
+const gapY = 50;
+
+for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 3; col++) {
+        const x = startX + col * (panelWidth + gapX);
+        const y = startY + row * (panelHeight + gapY);
+        const panelNum = row * 3 + col + 1;
+        
+        // Panel background
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(x, y, panelWidth, panelHeight);
+        
+        // Panel border
+        ctx.strokeStyle = '#607d8b';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, panelWidth, panelHeight);
+        
+        // Panel number
+        ctx.fillStyle = '#263238';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText(panelNum + '.', x + 10, y + 35);
+        
+        // Placeholder text
+        ctx.fillStyle = '#90a4ae';
+        ctx.font = '14px Arial';
+        ctx.fillText('Scene ' + panelNum, x + 10, y + panelHeight - 15);
+    }
+}
+`
+    },
+    mindmap: {
+        name: 'Mind Map',
+        description: 'Hierarchical structure with center node and branches',
+        generateJS: (width, height) => `
+// Clear and set background
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Canvas boundary
+ctx.strokeStyle = '#cccccc';
+ctx.lineWidth = 2;
+ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+// --- Mind Map Template ---
+// Central node with main branches and sub-branches
+
+const centerX = canvas.width / 2;
+const centerY = canvas.height / 2;
+
+// Main branches (4 primary directions)
+const branches = [
+    {angle: 0, color: '#f44336', label: 'Branch 1'},
+    {angle: 90, color: '#4caf50', label: 'Branch 2'},
+    {angle: 180, color: '#2196f3', label: 'Branch 3'},
+    {angle: 270, color: '#ff9800', label: 'Branch 4'}
+];
+
+branches.forEach(branch => {
+    const rad = branch.angle * Math.PI / 180;
+    
+    // Main branch line
+    ctx.strokeStyle = branch.color;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    const branchX = centerX + Math.cos(rad) * 250;
+    const branchY = centerY + Math.sin(rad) * 250;
+    ctx.lineTo(branchX, branchY);
+    ctx.stroke();
+    
+    // Main branch node
+    ctx.fillStyle = branch.color;
+    ctx.beginPath();
+    ctx.arc(branchX, branchY, 50, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(branch.label, branchX, branchY);
+    
+    // Sub-branches
+    const subAngles = [branch.angle - 35, branch.angle + 35];
+    subAngles.forEach(subAngle => {
+        const subRad = subAngle * Math.PI / 180;
+        
+        ctx.strokeStyle = branch.color;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(branchX, branchY);
+        const subX = branchX + Math.cos(subRad) * 150;
+        const subY = branchY + Math.sin(subRad) * 150;
+        ctx.lineTo(subX, subY);
+        ctx.stroke();
+        
+        // Sub-branch node
+        ctx.fillStyle = branch.color;
+        ctx.beginPath();
+        ctx.arc(subX, subY, 30, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    });
+});
+
+// Central node
+ctx.fillStyle = '#673ab7';
+ctx.beginPath();
+ctx.arc(centerX, centerY, 70, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.strokeStyle = '#512da8';
+ctx.lineWidth = 4;
+ctx.stroke();
+
+ctx.fillStyle = '#ffffff';
+ctx.font = 'bold 20px Arial';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('MAIN', centerX, centerY - 12);
+ctx.fillText('IDEA', centerX, centerY + 12);
+
+// Reset text alignment
+ctx.textAlign = 'left';
+ctx.textBaseline = 'alphabetic';
+`
+    }
+};
+
+// -------------------------
 // Multi-Canvas Management
 // -------------------------
 
@@ -355,29 +798,18 @@ function setActiveCanvasId(id) {
     currentCanvasId = id;
 }
 
-function createCanvas(name) {
+function createCanvas(name, templateId = 'blank') {
     const id = 'canvas_' + Date.now() + '_' + Math.random().toString(36).substring(7);
     const canvases = loadCanvases();
+    
+    const template = CANVAS_TEMPLATES[templateId] || CANVAS_TEMPLATES.blank;
+    const templateJS = template.generateJS(canvas.width, canvas.height);
     
     canvases[id] = {
         id: id,
         name: name || 'Untitled Canvas',
-        canvasJS: `
-// Clear and set background
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-ctx.fillStyle = '#ffffff';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-// Canvas boundary (so you can see edges when zoomed out)
-ctx.strokeStyle = '#cccccc';
-ctx.lineWidth = 2;
-ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-// Simple hello message
-ctx.fillStyle = '#858585';
-ctx.font = '16px Arial';
-ctx.fillText('Hello World', 20, 35);
-`,
+        template: templateId,
+        canvasJS: templateJS,
         created: Date.now(),
         modified: Date.now()
     };

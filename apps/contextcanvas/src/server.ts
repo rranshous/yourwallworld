@@ -223,11 +223,12 @@ app.get('/api/health', (req, res) => {
 
 // Chat endpoint
 app.post('/api/chat', async (req, res) => {
-  const { message, fullCanvasScreenshot, viewportScreenshot, canvasJS, canvasName, canvasDimensions, viewport } = req.body;
+  const { message, fullCanvasScreenshot, viewportScreenshot, canvasJS, canvasName, canvasTemplate, canvasDimensions, viewport } = req.body;
   
   console.log('\n=== NEW CHAT REQUEST ===');
   console.log('Message:', message);
   console.log('Canvas name:', canvasName || 'Unknown');
+  console.log('Canvas template:', canvasTemplate || 'Unknown');
   console.log('Canvas JS length:', canvasJS?.length || 0);
   console.log('Has full canvas screenshot:', !!fullCanvasScreenshot);
   console.log('Has viewport screenshot:', !!viewportScreenshot);
@@ -287,9 +288,10 @@ app.post('/api/chat', async (req, res) => {
     if (currentCanvasJS) {
       const redactedJS = redactImageDataFromJS(currentCanvasJS);
       const canvasLabel = canvasName ? `Canvas: "${canvasName}"` : 'Current Canvas';
+      const templateInfo = canvasTemplate ? ` (Template: ${canvasTemplate})` : '';
       userContent.push({
         type: 'text',
-        text: `${canvasLabel} JavaScript (canvas size: ${canvasWidth}×${canvasHeight}):\n\`\`\`javascript\n${redactedJS}\n\`\`\``
+        text: `${canvasLabel}${templateInfo} JavaScript (canvas size: ${canvasWidth}×${canvasHeight}):\n\`\`\`javascript\n${redactedJS}\n\`\`\``
       });
       console.log('Added canvas JS to message (with image data redacted)');
     }
@@ -322,7 +324,7 @@ app.post('/api/chat', async (req, res) => {
       // Call Anthropic API
       const response = await anthropic.messages.create({
         model: MODEL_STRING,
-        max_tokens: 4096,
+        max_tokens: 10000,
         system: SYSTEM_PROMPT,
         tools: [CANVAS_TOOL, IMPORT_WEBPAGE_TOOL],
         messages: tempMessages.map(msg => ({
