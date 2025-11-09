@@ -243,16 +243,18 @@ Current: 1600x900
 
 ## Implementation Order
 
-### Phase 1: Foundation
-1. **Milestone 2**: Multi-Canvas Management (persistence, switching, deletion)
-2. **Milestone 3**: Communication Frame Starters (depends on M2)
+### Phase 1: Single Canvas Enhancement
+1. **Milestone 1**: Pan and Zoom with Focus Context (navigate canvas space)
+2. **Milestone 5**: Canvas Resizing (allow organic growth)
 
-### Phase 2: Canvas Expansion
-3. **Milestone 5**: Canvas Resizing (allow growth)
-4. **Milestone 1**: Pan and Zoom with Focus Context (navigate large canvases)
+### Phase 2: External Content
+3. **Milestone 4**: Web Page Import Tool (bring in web content)
 
-### Phase 3: External Content
-5. **Milestone 4**: Web Page Import Tool (bring in web content)
+### Phase 3: Multi-Canvas Foundation
+4. **Milestone 2**: Multi-Canvas Management (persistence, switching, deletion)
+5. **Milestone 3**: Communication Frame Starters (depends on M2)
+
+**Rationale**: Perfect the single-canvas experience first (navigation, resizing, importing content), then add multi-canvas management and templates once the core interaction is solid.
 
 ---
 
