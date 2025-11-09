@@ -71,6 +71,11 @@ app.get('/api/health', (req, res) => {
 app.post('/api/chat', async (req, res) => {
   const { message, canvasScreenshot, canvasJS } = req.body;
   
+  console.log('\n=== NEW CHAT REQUEST ===');
+  console.log('Message:', message);
+  console.log('Canvas JS length:', canvasJS?.length || 0);
+  console.log('Has screenshot:', !!canvasScreenshot);
+  
   if (!message) {
     return res.status(400).json({ error: 'Message is required' });
   }
@@ -94,6 +99,7 @@ app.post('/api/chat', async (req, res) => {
           data: base64Data
         }
       });
+      console.log('Added canvas screenshot to message');
     }
     
     // Add canvas JS code if available
@@ -102,6 +108,7 @@ app.post('/api/chat', async (req, res) => {
         type: 'text',
         text: `Current Canvas JavaScript:\n\`\`\`javascript\n${currentCanvasJS}\n\`\`\``
       });
+      console.log('Added canvas JS to message');
     }
     
     // Add user's text message
@@ -115,6 +122,7 @@ app.post('/api/chat', async (req, res) => {
       role: 'user',
       content: userContent
     });
+    console.log('Added user message to history. History length:', conversationHistory.length);
     
     // Tool use loop - keep calling API while model wants to use tools
     // Use a temporary message array for the tool loop
@@ -122,7 +130,12 @@ app.post('/api/chat', async (req, res) => {
     let toolUses: any[] = [];
     const tempMessages = [...conversationHistory]; // Work with a copy
     
+    let loopCount = 0;
     while (true) {
+      loopCount++;
+      console.log(`\n--- API Call #${loopCount} ---`);
+      console.log('Temp messages length:', tempMessages.length);
+      
       // Call Anthropic API
       const response = await anthropic.messages.create({
         model: MODEL_STRING,
@@ -135,13 +148,22 @@ app.post('/api/chat', async (req, res) => {
         }))
       });
       
+      console.log('API Response received');
+      console.log('Response content blocks:', response.content.length);
+      response.content.forEach((block: any, i: number) => {
+        console.log(`  Block ${i}: type=${block.type}`);
+      });
+      
       finalResponse = response;
       
       // Check if response contains tool_use blocks
       const toolUseBlocks = response.content.filter((block: any) => block.type === 'tool_use');
       
+      console.log('Tool use blocks found:', toolUseBlocks.length);
+      
       if (toolUseBlocks.length === 0) {
         // No more tool uses, we're done
+        console.log('No tool uses, exiting loop');
         break;
       }
       
@@ -151,10 +173,14 @@ app.post('/api/chat', async (req, res) => {
         content: response.content
       });
       
+      console.log('Processing', toolUseBlocks.length, 'tool use blocks');
+      
       // Execute tools and update canvas JS
       for (const toolUse of toolUseBlocks) {
         if ((toolUse as any).name === 'update_canvas') {
           const jsCode = (toolUse as any).input.javascript_code;
+          console.log('Tool use ID:', (toolUse as any).id);
+          console.log('JS code length:', jsCode.length);
           // Add comment indicating AI drew this
           currentCanvasJS += '\n// Drawn by AI\n' + jsCode;
           toolUses.push({ id: (toolUse as any).id, code: jsCode });
@@ -186,11 +212,19 @@ app.post('/api/chat', async (req, res) => {
         role: 'user',
         content: toolResultContent
       });
+      
+      console.log('Added tool results, looping back for next API call');
     }
+    
+    console.log('\n--- Processing Final Response ---');
     
     // Extract final text response
     const textContent = finalResponse.content.find((c: any) => c.type === 'text');
     const assistantMessage = textContent && 'text' in textContent ? textContent.text : '';
+    
+    console.log('Final assistant message:', assistantMessage || '(empty)');
+    console.log('Total tool uses:', toolUses.length);
+    console.log('Updated canvas JS length:', currentCanvasJS.length);
     
     // Add final assistant response to history (as simple text)
     if (assistantMessage) {
@@ -205,6 +239,9 @@ app.post('/api/chat', async (req, res) => {
       conversationHistory = conversationHistory.slice(-10);
     }
     
+    console.log('Final conversation history length:', conversationHistory.length);
+    console.log('=== REQUEST COMPLETE ===\n');
+    
     res.json({
       success: true,
       response: assistantMessage,
@@ -213,7 +250,12 @@ app.post('/api/chat', async (req, res) => {
     });
     
   } catch (error: any) {
-    console.error('Error in chat endpoint:', error);
+    console.error('\n!!! ERROR IN CHAT ENDPOINT !!!');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('!!! END ERROR !!!\\n');
+    
     res.status(500).json({ 
       error: 'Failed to process message',
       details: error.message 
