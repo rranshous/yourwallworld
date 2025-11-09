@@ -105,13 +105,15 @@ app.get('/api/health', (req, res) => {
 
 // Chat endpoint
 app.post('/api/chat', async (req, res) => {
-  const { message, canvasScreenshot, canvasJS, canvasDimensions } = req.body;
+  const { message, fullCanvasScreenshot, viewportScreenshot, canvasJS, canvasDimensions, viewport } = req.body;
   
   console.log('\n=== NEW CHAT REQUEST ===');
   console.log('Message:', message);
   console.log('Canvas JS length:', canvasJS?.length || 0);
-  console.log('Has screenshot:', !!canvasScreenshot);
+  console.log('Has full canvas screenshot:', !!fullCanvasScreenshot);
+  console.log('Has viewport screenshot:', !!viewportScreenshot);
   console.log('Canvas dimensions:', canvasDimensions);
+  console.log('Viewport:', viewport);
   
   if (!message) {
     return res.status(400).json({ error: 'Message is required' });
@@ -120,16 +122,17 @@ app.post('/api/chat', async (req, res) => {
   try {
     // Track updated canvas JS through tool uses
     let currentCanvasJS = canvasJS || '';
-    let currentScreenshot = canvasScreenshot;
+    let currentFullScreenshot = fullCanvasScreenshot;
+    let currentViewportScreenshot = viewportScreenshot;
     const canvasWidth = canvasDimensions?.width || 1600;
     const canvasHeight = canvasDimensions?.height || 900;
     
     // Build initial user message content with canvas context
     const userContent: any[] = [];
     
-    // Add canvas screenshot if available
-    if (currentScreenshot && currentScreenshot.startsWith('data:image')) {
-      const base64Data = currentScreenshot.split(',')[1];
+    // Add full canvas screenshot if available
+    if (currentFullScreenshot && currentFullScreenshot.startsWith('data:image')) {
+      const base64Data = currentFullScreenshot.split(',')[1];
       userContent.push({
         type: 'image',
         source: {
@@ -138,7 +141,27 @@ app.post('/api/chat', async (req, res) => {
           data: base64Data
         }
       });
-      console.log('Added canvas screenshot to message');
+      console.log('Added full canvas screenshot to message');
+    }
+    
+    // Add viewport screenshot if available (and different from full canvas)
+    if (currentViewportScreenshot && 
+        currentViewportScreenshot.startsWith('data:image') &&
+        viewport && (viewport.scale !== 1.0 || viewport.offsetX !== 0 || viewport.offsetY !== 0)) {
+      const base64Data = currentViewportScreenshot.split(',')[1];
+      userContent.push({
+        type: 'text',
+        text: `User's current focus area (zoomed/panned view):`
+      });
+      userContent.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: base64Data
+        }
+      });
+      console.log('Added viewport screenshot to message');
     }
     
     // Add canvas JS code if available
@@ -228,7 +251,7 @@ app.post('/api/chat', async (req, res) => {
       
       // Render updated canvas on server
       console.log('Rendering updated canvas on server...');
-      currentScreenshot = renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
+      currentFullScreenshot = renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
       
       // Build tool result message with updated canvas context
       const toolResultContent: any[] = [];
@@ -243,8 +266,8 @@ app.post('/api/chat', async (req, res) => {
       }
       
       // Add updated canvas screenshot
-      if (currentScreenshot && currentScreenshot.startsWith('data:image')) {
-        const base64Data = currentScreenshot.split(',')[1];
+      if (currentFullScreenshot && currentFullScreenshot.startsWith('data:image')) {
+        const base64Data = currentFullScreenshot.split(',')[1];
         toolResultContent.push({
           type: 'image',
           source: {

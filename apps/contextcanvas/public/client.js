@@ -80,18 +80,26 @@ async function sendMessage() {
     const loadingMsg = addMessage('assistant', '...');
     
     try {
-        // Capture canvas screenshot
-        let canvasScreenshot = null;
+        // Capture canvas screenshots (both full and viewport)
+        let fullCanvasScreenshot = null;
+        let viewportScreenshot = null;
         let canvasJSCode = null;
         let canvasDimensions = null;
+        let viewportData = null;
         
         if (canvas) {
             try {
-                canvasScreenshot = canvas.toDataURL('image/png');
+                fullCanvasScreenshot = captureFullCanvas();
+                viewportScreenshot = captureViewport();
                 canvasJSCode = canvasJS;
                 canvasDimensions = {
                     width: canvas.width,
                     height: canvas.height
+                };
+                viewportData = {
+                    offsetX: viewport.offsetX,
+                    offsetY: viewport.offsetY,
+                    scale: viewport.scale
                 };
             } catch (error) {
                 console.error('Error capturing canvas:', error);
@@ -105,9 +113,11 @@ async function sendMessage() {
             },
             body: JSON.stringify({ 
                 message,
-                canvasScreenshot,
+                fullCanvasScreenshot,
+                viewportScreenshot,
                 canvasJS: canvasJSCode,
-                canvasDimensions
+                canvasDimensions,
+                viewport: viewportData
             })
         });
         
@@ -177,6 +187,13 @@ const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext && canvas.getContext('2d');
 const canvasCodePre = document.getElementById('canvasCode');
 
+// Viewport state for pan and zoom
+let viewport = {
+    offsetX: 0,
+    offsetY: 0,
+    scale: 1.0
+};
+
 // The canvas JS code is the source of truth
 // This is the actual JavaScript that renders the canvas
 let canvasJS = `
@@ -212,11 +229,30 @@ function resizeCanvasToFit() {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(rect.width * dpr);
     canvas.height = Math.floor(rect.height * dpr);
-    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (ctx) {
+        // Apply DPR scaling
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // Then apply viewport transform
+        ctx.translate(viewport.offsetX, viewport.offsetY);
+        ctx.scale(viewport.scale, viewport.scale);
+    }
 }
 
 function renderCanvas() {
     if (!ctx) return;
+    
+    // Save current transform
+    ctx.save();
+    
+    // Reset to identity for full clear
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    
+    // Apply viewport transform
+    ctx.translate(viewport.offsetX, viewport.offsetY);
+    ctx.scale(viewport.scale, viewport.scale);
+    
     try {
         // Execute the canvas JS code
         eval(canvasJS);
@@ -227,6 +263,9 @@ function renderCanvas() {
         ctx.font = '14px monospace';
         ctx.fillText('Error rendering canvas: ' + error.message, 20, 20);
     }
+    
+    // Restore transform
+    ctx.restore();
 }
 
 function updateDebugPanel() {
@@ -273,20 +312,29 @@ function getCanvasCoordinates(e) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
-    };
+    
+    // Get screen coordinates
+    const screenX = (e.clientX - rect.left) * scaleX;
+    const screenY = (e.clientY - rect.top) * scaleY;
+    
+    // Transform to canvas coordinates (accounting for viewport)
+    const canvasX = (screenX / viewport.scale) - viewport.offsetX / viewport.scale;
+    const canvasY = (screenY / viewport.scale) - viewport.offsetY / viewport.scale;
+    
+    return { x: canvasX, y: canvasY };
 }
 
 function startDrawing(e) {
+    // Don't start drawing if middle mouse or shift+click (panning)
+    if (e.button === 1 || e.shiftKey) return;
+    
     isDrawing = true;
     const coords = getCanvasCoordinates(e);
     currentPath = [coords];
 }
 
 function draw(e) {
-    if (!isDrawing) return;
+    if (!isDrawing || isPanning) return;
     
     const coords = getCanvasCoordinates(e);
     currentPath.push(coords);
@@ -295,7 +343,7 @@ function draw(e) {
     if (ctx && currentPath.length > 1) {
         const prev = currentPath[currentPath.length - 2];
         ctx.strokeStyle = '#ff6b35';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 3 / viewport.scale; // Adjust line width for zoom
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.beginPath();
@@ -347,3 +395,112 @@ canvas.addEventListener('mousedown', startDrawing);
 canvas.addEventListener('mousemove', draw);
 canvas.addEventListener('mouseup', endDrawing);
 canvas.addEventListener('mouseleave', endDrawing);
+
+// -------------------------
+// Pan and Zoom controls
+// -------------------------
+
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+
+// Pan with middle mouse or space+drag
+canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 1 || (e.button === 0 && e.shiftKey)) { // Middle click or Shift+left click
+        e.preventDefault();
+        isPanning = true;
+        panStart = { x: e.clientX, y: e.clientY };
+        canvas.style.cursor = 'grab';
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+        const dx = e.clientX - panStart.x;
+        const dy = e.clientY - panStart.y;
+        
+        viewport.offsetX += dx;
+        viewport.offsetY += dy;
+        
+        panStart = { x: e.clientX, y: e.clientY };
+        renderCanvas();
+        canvas.style.cursor = 'grabbing';
+    }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    if (e.button === 1 || (isPanning && e.button === 0)) {
+        isPanning = false;
+        canvas.style.cursor = 'default';
+    }
+});
+
+// Zoom with mouse wheel
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Zoom factor
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const oldScale = viewport.scale;
+    viewport.scale *= zoomFactor;
+    
+    // Clamp zoom level
+    viewport.scale = Math.max(0.1, Math.min(viewport.scale, 5.0));
+    
+    // Adjust offset to zoom toward mouse position
+    const scaleChange = viewport.scale / oldScale;
+    viewport.offsetX = mouseX - (mouseX - viewport.offsetX) * scaleChange;
+    viewport.offsetY = mouseY - (mouseY - viewport.offsetY) * scaleChange;
+    
+    renderCanvas();
+}, { passive: false });
+
+// Reset viewport
+window.__contextCanvas.resetView = function() {
+    viewport.offsetX = 0;
+    viewport.offsetY = 0;
+    viewport.scale = 1.0;
+    renderCanvas();
+    console.log('Viewport reset to default');
+};
+
+// -------------------------
+// Canvas screenshot generation
+// -------------------------
+
+// Generate full canvas screenshot (no viewport transform)
+function captureFullCanvas() {
+    if (!canvas || !ctx) return null;
+    
+    // Create temporary canvas
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Render at identity transform (no pan/zoom)
+    const dpr = window.devicePixelRatio || 1;
+    tempCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    tempCtx.clearRect(0, 0, tempCanvas.width / dpr, tempCanvas.height / dpr);
+    
+    try {
+        // Execute canvas JS without viewport transform
+        eval(canvasJS);
+    } catch (error) {
+        console.error('Error rendering full canvas:', error);
+    }
+    
+    return tempCanvas.toDataURL('image/png');
+}
+
+// Generate viewport screenshot (current user view)
+function captureViewport() {
+    if (!canvas) return null;
+    
+    // Current canvas already shows the viewport view
+    return canvas.toDataURL('image/png');
+}
+
