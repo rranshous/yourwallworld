@@ -28,8 +28,8 @@ const contextCounter = document.getElementById('contextCounter');
 
 function updateContextCounter(usage) {
     if (usage && usage.input_tokens) {
-        const total = usage.input_tokens + (usage.output_tokens || 0);
-        contextCounter.textContent = `${usage.input_tokens.toLocaleString()} in / ${(usage.output_tokens || 0).toLocaleString()} out (${total.toLocaleString()} total)`;
+        // input_tokens is the total context size (includes everything: history, images, system prompt, etc.)
+        contextCounter.textContent = `Context: ${usage.input_tokens.toLocaleString()} tokens`;
     }
 }
 
