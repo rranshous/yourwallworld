@@ -39,7 +39,7 @@ const CANVAS_TOOL = {
 // Tool definition for importing web pages
 const IMPORT_WEBPAGE_TOOL = {
   name: 'import_webpage',
-  description: 'Import a screenshot of a webpage into the canvas. The webpage will be captured as an image and placed on the canvas at the specified position.',
+  description: 'Import a screenshot of a webpage into the canvas. The webpage will be captured as an image and placed on the canvas at the specified position. You can control the browser viewport size to capture desktop vs mobile views.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -55,9 +55,13 @@ const IMPORT_WEBPAGE_TOOL = {
         type: 'number',
         description: 'Y coordinate for the top-left corner of the image (optional, defaults to 20)'
       },
-      width: {
+      viewport_width: {
         type: 'number',
-        description: 'Maximum width to scale the image to (optional, defaults to 800)'
+        description: 'Browser viewport width in pixels (optional, defaults to 1200). Use 1920 for desktop, 375 for mobile, 768 for tablet.'
+      },
+      viewport_height: {
+        type: 'number',
+        description: 'Browser viewport height in pixels (optional, defaults to 900)'
       }
     },
     required: ['url']
@@ -148,10 +152,10 @@ function redactImageDataFromJS(js: string): string {
 }
 
 // Screenshot a webpage using Playwright
-async function screenshotWebpage(url: string, maxWidth: number = 800): Promise<string> {
+async function screenshotWebpage(url: string, viewportWidth: number = 1200, viewportHeight: number = 900): Promise<string> {
   let browser;
   try {
-    console.log(`Screenshotting webpage: ${url}`);
+    console.log(`Screenshotting webpage: ${url} (viewport: ${viewportWidth}×${viewportHeight})`);
 
     // Validate URL
     const urlObj = new URL(url);
@@ -162,7 +166,10 @@ async function screenshotWebpage(url: string, maxWidth: number = 800): Promise<s
     // Launch headless browser (include no-sandbox flags for container environments)
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const context = await browser.newContext({
-      viewport: { width: Math.max(320, Math.min(maxWidth, 1600)), height: 900 },
+      viewport: { 
+        width: Math.max(320, Math.min(viewportWidth, 3840)),  // Clamp between 320px and 4K
+        height: Math.max(240, Math.min(viewportHeight, 2160)) 
+      },
       userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
     });
     const page = await context.newPage();
@@ -174,7 +181,7 @@ async function screenshotWebpage(url: string, maxWidth: number = 800): Promise<s
     let navigated = false;
     try {
       // Try the stricter wait first (may fail on sites with persistent connections)
-      await page.goto(url, { timeout: 10000, waitUntil: 'networkidle' });
+      await page.goto(url, { timeout: 5000, waitUntil: 'networkidle' });
       navigated = true;
     } catch (err: any) {
       console.warn('networkidle navigation failed, falling back to domcontentloaded:', err.message);
@@ -364,14 +371,15 @@ app.post('/api/chat', async (req, res) => {
           const url = (toolUse as any).input.url;
           const x = (toolUse as any).input.x || 20;
           const y = (toolUse as any).input.y || 20;
-          const maxWidth = (toolUse as any).input.width || 800;
+          const viewportWidth = (toolUse as any).input.viewport_width || 1200;
+          const viewportHeight = (toolUse as any).input.viewport_height || 900;
           
           console.log('Tool: import_webpage, ID:', (toolUse as any).id);
-          console.log('URL:', url, 'Position:', x, y, 'Max width:', maxWidth);
+          console.log('URL:', url, 'Position:', x, y, 'Viewport:', viewportWidth, 'x', viewportHeight);
           
           try {
             // Screenshot the webpage
-            const imageDataUri = await screenshotWebpage(url, maxWidth);
+            const imageDataUri = await screenshotWebpage(url, viewportWidth, viewportHeight);
             
             // Generate unique ID for this image
             const imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(7);
