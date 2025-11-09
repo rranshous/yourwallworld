@@ -42,6 +42,39 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// Resize Modal controls
+const resizeModal = document.getElementById('resizeModal');
+const resizeButton = document.getElementById('resizeButton');
+const closeResizeButton = document.getElementById('closeResizeButton');
+const canvasSizeDisplay = document.getElementById('canvasSize');
+const currentSizeDisplay = document.getElementById('currentSize');
+const resize2xWidthBtn = document.getElementById('resize2xWidth');
+const resize2xHeightBtn = document.getElementById('resize2xHeight');
+const resize2xBothBtn = document.getElementById('resize2xBoth');
+
+resizeButton.addEventListener('click', () => {
+    updateSizeDisplays();
+    resizeModal.style.display = 'flex';
+});
+
+closeResizeButton.addEventListener('click', () => {
+    resizeModal.style.display = 'none';
+});
+
+// Close modal on background click
+resizeModal.addEventListener('click', (e) => {
+    if (e.target === resizeModal) {
+        resizeModal.style.display = 'none';
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && resizeModal.style.display === 'flex') {
+        resizeModal.style.display = 'none';
+    }
+});
+
 // Context counter
 const contextCounter = document.getElementById('contextCounter');
 
@@ -295,12 +328,77 @@ window.addEventListener('resize', () => {
 // run init after a tick so layout settled
 setTimeout(initCanvas, 60);
 
+// -------------------------
+// Canvas resizing
+// -------------------------
+
+const MAX_WIDTH = 6400;
+const MAX_HEIGHT = 3600;
+
+function updateSizeDisplays() {
+    const currentW = canvas.width;
+    const currentH = canvas.height;
+    const sizeText = `${currentW}×${currentH}`;
+    canvasSizeDisplay.textContent = sizeText;
+    currentSizeDisplay.textContent = sizeText;
+    
+    // Update button states based on limits
+    resize2xWidthBtn.disabled = (currentW * 2 > MAX_WIDTH);
+    resize2xHeightBtn.disabled = (currentH * 2 > MAX_HEIGHT);
+    resize2xBothBtn.disabled = (currentW * 2 > MAX_WIDTH || currentH * 2 > MAX_HEIGHT);
+    
+    // Style disabled buttons
+    [resize2xWidthBtn, resize2xHeightBtn, resize2xBothBtn].forEach(btn => {
+        if (btn.disabled) {
+            btn.style.background = '#555';
+            btn.style.cursor = 'not-allowed';
+            btn.style.opacity = '0.5';
+        } else {
+            btn.style.background = '#0e639c';
+            btn.style.cursor = 'pointer';
+            btn.style.opacity = '1';
+        }
+    });
+}
+
+function resizeCanvas(newWidth, newHeight) {
+    console.log(`Resizing canvas from ${canvas.width}×${canvas.height} to ${newWidth}×${newHeight}`);
+    
+    // Update canvas dimensions
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    
+    // Re-render with existing JS (content is top-left anchored)
+    renderCanvas();
+    updateSizeDisplays();
+    
+    // Close modal
+    resizeModal.style.display = 'none';
+}
+
+resize2xWidthBtn.addEventListener('click', () => {
+    const newWidth = Math.min(canvas.width * 2, MAX_WIDTH);
+    resizeCanvas(newWidth, canvas.height);
+});
+
+resize2xHeightBtn.addEventListener('click', () => {
+    const newHeight = Math.min(canvas.height * 2, MAX_HEIGHT);
+    resizeCanvas(canvas.width, newHeight);
+});
+
+resize2xBothBtn.addEventListener('click', () => {
+    const newWidth = Math.min(canvas.width * 2, MAX_WIDTH);
+    const newHeight = Math.min(canvas.height * 2, MAX_HEIGHT);
+    resizeCanvas(newWidth, newHeight);
+});
+
 // Expose for debug in console
 window.__contextCanvas = {
     getJS: () => canvasJS,
     setJS: setCanvasJS,
     render: renderCanvas,
-    updateDebug: updateDebugPanel
+    updateDebug: updateDebugPanel,
+    resize: resizeCanvas
 };
 
 // -------------------------

@@ -194,8 +194,12 @@
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <span>Chat</span>
                     <button id="showJsButton" style="padding: 4px 8px; font-size: 11px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #ccc; cursor: pointer;">View JS</button>
+                    <button id="resizeButton" style="padding: 4px 8px; font-size: 11px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #ccc; cursor: pointer;">Resize</button>
                 </div>
-                <span id="contextCounter">0 tokens</span>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span id="canvasSize" style="font-size: 11px; color: #858585;">1600×900</span>
+                    <span id="contextCounter">0 tokens</span>
+                </div>
             </div>
             <div id="chatMessages">
                 <!-- Messages will appear here -->
@@ -215,6 +219,27 @@
                 <button id="closeJsButton" style="background: none; border: none; color: #ccc; font-size: 20px; cursor: pointer; padding: 0 8px;">×</button>
             </div>
             <pre id="canvasCode" style="flex: 1; margin: 0; padding: 20px; overflow: auto; color: #d4d4d4; font-family: monospace; font-size: 12px;">// Canvas JavaScript will appear here</pre>
+        </div>
+    </div>
+    
+    <!-- Resize Modal -->
+    <div id="resizeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 8px; width: 400px; display: flex; flex-direction: column;">
+            <div style="padding: 15px; border-bottom: 1px solid #3e3e42; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #d4d4d4; font-weight: 600;">Resize Canvas</span>
+                <button id="closeResizeButton" style="background: none; border: none; color: #ccc; font-size: 20px; cursor: pointer; padding: 0 8px;">×</button>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                <div style="color: #d4d4d4; font-size: 13px;">
+                    Current size: <span id="currentSize" style="color: #4ec9b0;">1600×900</span>
+                </div>
+                <button id="resize2xWidth" style="padding: 10px; background: #0e639c; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 13px;">2× Width</button>
+                <button id="resize2xHeight" style="padding: 10px; background: #0e639c; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 13px;">2× Height</button>
+                <button id="resize2xBoth" style="padding: 10px; background: #0e639c; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 13px;">2× Both Dimensions</button>
+                <div style="color: #858585; font-size: 11px; margin-top: 5px;">
+                    Max size: 6400×3600
+                </div>
+            </div>
         </div>
     </div>
     
