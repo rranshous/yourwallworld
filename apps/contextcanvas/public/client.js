@@ -202,25 +202,10 @@ ctx.clearRect(0, 0, canvas.width, canvas.height);
 ctx.fillStyle = '#ffffff';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-// Welcome box
-ctx.fillStyle = '#0e639c';
-ctx.fillRect(40, 40, 400, 140);
-ctx.fillStyle = '#ffffff';
-ctx.font = '24px Arial';
-ctx.fillText('Welcome to Context Canvas', 60, 95);
-
-// Memories box
-ctx.fillStyle = '#2d2d30';
-ctx.fillRect(480, 40, 320, 120);
-ctx.fillStyle = '#d4d4d4';
-ctx.font = '18px Arial';
-ctx.fillText('Memories', 500, 85);
-
-// Circle
-ctx.fillStyle = '#ffaa00';
-ctx.beginPath();
-ctx.arc(200, 260, 40, 0, Math.PI * 2);
-ctx.fill();
+// Simple hello message
+ctx.fillStyle = '#858585';
+ctx.font = '16px Arial';
+ctx.fillText('Hello', 20, 35);
 `;
 
 function resizeCanvasToFit() {
