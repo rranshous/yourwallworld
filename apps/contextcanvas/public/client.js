@@ -101,25 +101,41 @@ messageInput.addEventListener('keydown', (e) => {
 messageInput.focus();
 
 // -------------------------
-// Canvas state & renderer
+// Canvas JS code renderer
 // -------------------------
 
 const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext && canvas.getContext('2d');
 const canvasCodePre = document.getElementById('canvasCode');
 
-// Basic canvas state representation (this will be sent to the model later)
-const canvasState = {
-    width: 1600,
-    height: 900,
-    shapes: [
-        { type: 'rect', x: 40, y: 40, width: 400, height: 140, color: '#0e639c', fill: true },
-        { type: 'text', text: 'Welcome to Context Canvas', x: 60, y: 95, color: '#ffffff', font: '24px Arial' },
-        { type: 'rect', x: 480, y: 40, width: 320, height: 120, color: '#2d2d30', fill: true },
-        { type: 'text', text: 'Memories', x: 500, y: 85, color: '#d4d4d4', font: '18px Arial' },
-        { type: 'circle', x: 200, y: 260, radius: 40, color: '#ffaa00', fill: true }
-    ]
-};
+// The canvas JS code is the source of truth
+// This is the actual JavaScript that renders the canvas
+let canvasJS = `
+// Clear and set background
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Welcome box
+ctx.fillStyle = '#0e639c';
+ctx.fillRect(40, 40, 400, 140);
+ctx.fillStyle = '#ffffff';
+ctx.font = '24px Arial';
+ctx.fillText('Welcome to Context Canvas', 60, 95);
+
+// Memories box
+ctx.fillStyle = '#2d2d30';
+ctx.fillRect(480, 40, 320, 120);
+ctx.fillStyle = '#d4d4d4';
+ctx.font = '18px Arial';
+ctx.fillText('Memories', 500, 85);
+
+// Circle
+ctx.fillStyle = '#ffaa00';
+ctx.beginPath();
+ctx.arc(200, 260, 40, 0, Math.PI * 2);
+ctx.fill();
+`;
 
 function resizeCanvasToFit() {
     const rect = canvas.getBoundingClientRect();
@@ -127,66 +143,43 @@ function resizeCanvasToFit() {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(rect.width * dpr);
     canvas.height = Math.floor(rect.height * dpr);
-    canvasState.width = canvas.width;
-    canvasState.height = canvas.height;
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-function renderFromState() {
+function renderCanvas() {
     if (!ctx) return;
-    // clear
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    for (const s of canvasState.shapes) {
-        switch (s.type) {
-            case 'rect':
-                ctx.fillStyle = s.color || '#000';
-                if (s.fill) ctx.fillRect(s.x, s.y, s.width, s.height);
-                else ctx.strokeRect(s.x, s.y, s.width, s.height);
-                break;
-            case 'circle':
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-                if (s.fill) {
-                    ctx.fillStyle = s.color || '#000';
-                    ctx.fill();
-                } else {
-                    ctx.strokeStyle = s.color || '#000';
-                    ctx.stroke();
-                }
-                break;
-            case 'text':
-                ctx.fillStyle = s.color || '#000';
-                ctx.font = s.font || '16px Arial';
-                ctx.fillText(s.text, s.x, s.y);
-                break;
-        }
+    try {
+        // Execute the canvas JS code
+        eval(canvasJS);
+    } catch (error) {
+        console.error('Error executing canvas JS:', error);
+        // Show error on canvas
+        ctx.fillStyle = '#f48771';
+        ctx.font = '14px monospace';
+        ctx.fillText('Error rendering canvas: ' + error.message, 20, 20);
     }
 }
 
-function generateCanvasJSString() {
-    // This returns a small JS snippet that represents the canvas state and render usage
-    const stateJSON = JSON.stringify(canvasState, null, 2);
-    return `// Canvas state (JSON)\nconst canvasState = ${stateJSON};\n\n// render(ctx, canvasState) - rendering logic is implemented on the client\n`;
+function updateDebugPanel() {
+    canvasCodePre.textContent = canvasJS;
 }
 
-function updateDebugPanel() {
-    canvasCodePre.textContent = generateCanvasJSString();
+function setCanvasJS(newJS) {
+    canvasJS = newJS;
+    renderCanvas();
+    updateDebugPanel();
 }
 
 // Initialize
 function initCanvas() {
     resizeCanvasToFit();
-    renderFromState();
+    renderCanvas();
     updateDebugPanel();
 }
 
 window.addEventListener('resize', () => {
     resizeCanvasToFit();
-    renderFromState();
+    renderCanvas();
 });
 
 // run init after a tick so layout settled
@@ -194,7 +187,8 @@ setTimeout(initCanvas, 60);
 
 // Expose for debug in console
 window.__contextCanvas = {
-    state: canvasState,
-    render: renderFromState,
+    getJS: () => canvasJS,
+    setJS: setCanvasJS,
+    render: renderCanvas,
     updateDebug: updateDebugPanel
 };
