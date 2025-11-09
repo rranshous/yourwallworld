@@ -580,19 +580,12 @@ ctx.strokeStyle = '#3f51b5';
 ctx.lineWidth = 3;
 ctx.stroke();
 
-ctx.fillStyle = '#ffffff';
-ctx.font = 'bold 18px Arial';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'middle';
-ctx.fillText('CENTRAL', centerX, centerY - 10);
-ctx.fillText('TOPIC', centerX, centerY + 10);
-
 // Helper circles for subtopics
 const positions = [
-    {x: centerX + 350, y: centerY, label: 'Subtopic'},
-    {x: centerX - 350, y: centerY, label: 'Subtopic'},
-    {x: centerX, y: centerY - 350, label: 'Subtopic'},
-    {x: centerX, y: centerY + 350, label: 'Subtopic'}
+    {x: centerX + 350, y: centerY},
+    {x: centerX - 350, y: centerY},
+    {x: centerX, y: centerY - 350},
+    {x: centerX, y: centerY + 350}
 ];
 
 positions.forEach(pos => {
@@ -604,15 +597,7 @@ positions.forEach(pos => {
     ctx.strokeStyle = '#90caf9';
     ctx.lineWidth = 2;
     ctx.stroke();
-    
-    ctx.fillStyle = '#1976d2';
-    ctx.font = '14px Arial';
-    ctx.fillText(pos.label, pos.x, pos.y);
 });
-
-// Reset text alignment
-ctx.textAlign = 'left';
-ctx.textBaseline = 'alphabetic';
 `
     },
     storyboard: {
@@ -689,10 +674,10 @@ const centerY = canvas.height / 2;
 
 // Main branches (4 primary directions)
 const branches = [
-    {angle: 0, color: '#f44336', label: 'Branch 1'},
-    {angle: 90, color: '#4caf50', label: 'Branch 2'},
-    {angle: 180, color: '#2196f3', label: 'Branch 3'},
-    {angle: 270, color: '#ff9800', label: 'Branch 4'}
+    {angle: 0, color: '#f44336'},
+    {angle: 90, color: '#4caf50'},
+    {angle: 180, color: '#2196f3'},
+    {angle: 270, color: '#ff9800'}
 ];
 
 branches.forEach(branch => {
@@ -713,12 +698,6 @@ branches.forEach(branch => {
     ctx.beginPath();
     ctx.arc(branchX, branchY, 50, 0, Math.PI * 2);
     ctx.fill();
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(branch.label, branchX, branchY);
     
     // Sub-branches
     const subAngles = [branch.angle - 35, branch.angle + 35];
@@ -753,17 +732,6 @@ ctx.fill();
 ctx.strokeStyle = '#512da8';
 ctx.lineWidth = 4;
 ctx.stroke();
-
-ctx.fillStyle = '#ffffff';
-ctx.font = 'bold 20px Arial';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'middle';
-ctx.fillText('MAIN', centerX, centerY - 12);
-ctx.fillText('IDEA', centerX, centerY + 12);
-
-// Reset text alignment
-ctx.textAlign = 'left';
-ctx.textBaseline = 'alphabetic';
 `
     }
 };
