@@ -13,14 +13,33 @@ fetch('/api/health')
         document.getElementById('statusText').style.color = '#f48771';
     });
 
-// Debug panel toggle
-const debugPanel = document.getElementById('debugPanel');
-const debugHeader = document.getElementById('debugHeader');
-const debugToggle = document.getElementById('debugToggle');
+// JS Modal controls
+const jsModal = document.getElementById('jsModal');
+const showJsButton = document.getElementById('showJsButton');
+const closeJsButton = document.getElementById('closeJsButton');
+const canvasCodePre = document.getElementById('canvasCode');
 
-debugHeader.addEventListener('click', () => {
-    debugPanel.classList.toggle('hidden');
-    debugToggle.textContent = debugPanel.classList.contains('hidden') ? '▼' : '▲';
+showJsButton.addEventListener('click', () => {
+    updateDebugPanel();
+    jsModal.style.display = 'flex';
+});
+
+closeJsButton.addEventListener('click', () => {
+    jsModal.style.display = 'none';
+});
+
+// Close modal on background click
+jsModal.addEventListener('click', (e) => {
+    if (e.target === jsModal) {
+        jsModal.style.display = 'none';
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && jsModal.style.display === 'flex') {
+        jsModal.style.display = 'none';
+    }
 });
 
 // Context counter
@@ -185,7 +204,6 @@ messageInput.focus();
 
 const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext && canvas.getContext('2d');
-const canvasCodePre = document.getElementById('canvasCode');
 
 // Viewport state for pan and zoom
 let viewport = {

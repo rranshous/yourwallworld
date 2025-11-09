@@ -41,53 +41,6 @@
             background: #ffffff;
         }
 
-        #debugPanel {
-            position: absolute;
-            left: 20px;
-            bottom: 20px;
-            width: 480px;
-            max-height: 40vh;
-            background: rgba(30,30,30,0.95);
-            color: #d4d4d4;
-            border: 1px solid #3e3e42;
-            border-radius: 6px;
-            overflow: auto;
-            z-index: 1000;
-            font-family: monospace;
-            font-size: 12px;
-            transition: max-height 0.3s ease;
-        }
-        
-        #debugPanel.hidden {
-            max-height: 42px;
-            overflow: hidden;
-        }
-        
-        #debugPanel.hidden #canvasCode {
-            display: none;
-        }
-
-        #debugHeader {
-            padding: 8px 10px;
-            background: #1e1e1e;
-            border-bottom: 1px solid #3e3e42;
-            font-weight: 700;
-            cursor: pointer;
-            user-select: none;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        #debugHeader:hover {
-            background: #2a2a2a;
-        }
-        
-        #debugToggle {
-            font-size: 14px;
-            color: #858585;
-        }
-
         #canvasCode {
             margin: 0;
             padding: 10px;
@@ -234,18 +187,14 @@
     <div id="app">
         <div id="mainArea">
             <canvas id="mainCanvas" width="1600" height="900" style="background: #fff; border: 1px solid #333; display: block; max-width: 100%; height: auto;"></canvas>
-            <div id="debugPanel" class="hidden">
-                <div id="debugHeader">
-                    <span>Canvas JS</span>
-                    <span id="debugToggle">▼</span>
-                </div>
-                <pre id="canvasCode">// Canvas JavaScript will appear here</pre>
-            </div>
         </div>
         
         <div id="chatSidebar">
             <div id="chatHeader">
-                <span>Chat</span>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span>Chat</span>
+                    <button id="showJsButton" style="padding: 4px 8px; font-size: 11px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #ccc; cursor: pointer;">View JS</button>
+                </div>
                 <span id="contextCounter">0 tokens</span>
             </div>
             <div id="chatMessages">
@@ -255,6 +204,17 @@
                 <textarea id="messageInput" placeholder="Type a message..."></textarea>
                 <button id="sendButton">Send</button>
             </div>
+        </div>
+    </div>
+    
+    <!-- JS Modal -->
+    <div id="jsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 8px; width: 80%; max-width: 900px; max-height: 80%; display: flex; flex-direction: column;">
+            <div style="padding: 15px; border-bottom: 1px solid #3e3e42; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #d4d4d4; font-weight: 600;">Canvas JavaScript</span>
+                <button id="closeJsButton" style="background: none; border: none; color: #ccc; font-size: 20px; cursor: pointer; padding: 0 8px;">×</button>
+            </div>
+            <pre id="canvasCode" style="flex: 1; margin: 0; padding: 20px; overflow: auto; color: #d4d4d4; font-family: monospace; font-size: 12px;">// Canvas JavaScript will appear here</pre>
         </div>
     </div>
     
