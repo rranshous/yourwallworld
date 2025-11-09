@@ -71,8 +71,9 @@ Pure visual loop - same as fullscreened:
 
 ### Available Apertures
 - `temporal-sense`: Awareness of current time/date
+- `iteration-sense`: Awareness of cycle/iteration count
 - `audio-channel`: Hear spoken words (speech-to-text)
-- `visual-input`: See through webcam (future)
+- Model can define custom apertures (will show "[not connected]")
 
 The model can accept these suggestions, modify them, or create entirely new ones.
 
@@ -115,8 +116,41 @@ This tests several hypotheses:
 - **Visual identity**: Model creates its own appearance
 - **Aperture system**: Model chooses what external senses to have
 - **Pure visual loop**: After awakening, only images - no hidden context
+- **Content clearing**: Model can clear regions to redraw/update
+- **Transparent regions**: Only model's content is visible (no backgrounds)
+- **Persistent labels**: Region names always visible for identification
+- **Auto-loop mode**: Continuous embodiment updates
+- **Manual updates**: Update without speech input
 - **Session persistence**: Embodiment structure saved and restored
 - **Phased awakening**: Clear progression from void to form to experience
+
+## Setup
+
+```bash
+cd apps/firstlight
+./setup.sh
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY
+npm run dev
+```
+
+Open http://localhost:3002 in your browser.
+
+## Usage
+
+### Definition Phases (1-3)
+1. Click **"Begin Emergence"** to start Phase 1
+2. Click **"Continue"** to progress through phases
+3. Click **"Awaken"** when ready for visual experience
+
+### Awakened Phase
+- **Speak (L)**: Use speech recognition to talk to the model
+- **Update (U)**: Trigger update without speech
+- **Auto-loop checkbox**: Enable continuous updates (every 2 seconds)
+
+### Keyboard Shortcuts
+- `L` - Start listening for speech
+- `U` - Manual update (no speech)
 
 ## Future Explorations
 

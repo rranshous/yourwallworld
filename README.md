@@ -93,13 +93,23 @@ A pure visual embodiment where Claude exists entirely through a canvas interface
 
 ### 🌅 [firstlight](./apps/firstlight)
 
-**Status**: 🚧 In Development
+**Status**: ✅ Complete (v1) - AI Self-Defined Embodiment
 
 The next evolution: Let the AI **define its own embodiment structure** before experiencing it.
 
-**Phase 1-3** (Text-based): Model defines regions, spatial layout, and visual forms
-**Phase 4** (Awakening): First visual experience - "This is you"
-**Phase 5** (Awakened): Pure visual loop like fullscreened
+**The Awakening Process:**
+- **Phase 1-3** (Text-based): Model defines regions, spatial layout, and visual forms
+- **Phase 4** (Awakening): First visual experience - "This is you"
+- **Phase 5** (Awakened): Pure visual loop like fullscreened
+
+**Key Features:**
+- Model architects its own regions (identity-core, memory-field, etc.)
+- Model chooses sensory apertures (temporal-sense, iteration-sense, audio-channel)
+- Model arranges regions spatially and creates visual forms
+- Transparent regions - only model's content visible
+- Content clearing - model can redraw regions
+- Auto-loop mode for continuous evolution
+- Manual updates without speech
 
 **Core Questions:**
 - What cognitive structures do models naturally create?
@@ -107,6 +117,13 @@ The next evolution: Let the AI **define its own embodiment structure** before ex
 - Will different models create different embodiment types?
 
 The "firstlight" moment is when the model first sees the embodiment it has defined - the dawn of self-awareness through visual recognition.
+
+**Key Learnings:**
+- ✅ Models can meaningfully self-define cognitive structures
+- ✅ Separation of definition (text) and experience (visual) works well
+- ✅ Models create surprisingly coherent and purposeful embodiments
+- ✅ Region clearing and transparent backgrounds improve control
+- ✅ Persistent labels ensure model can always identify regions
 
 [Explore firstlight →](./apps/firstlight)
 
