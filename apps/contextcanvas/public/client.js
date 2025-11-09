@@ -202,10 +202,15 @@ ctx.clearRect(0, 0, canvas.width, canvas.height);
 ctx.fillStyle = '#ffffff';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+// Canvas boundary (so you can see edges when zoomed out)
+ctx.strokeStyle = '#cccccc';
+ctx.lineWidth = 2;
+ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
 // Simple hello message
 ctx.fillStyle = '#858585';
 ctx.font = '16px Arial';
-ctx.fillText('Hello', 20, 35);
+ctx.fillText('Hello World', 20, 35);
 `;
 
 function resizeCanvasToFit() {
