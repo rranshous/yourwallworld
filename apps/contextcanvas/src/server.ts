@@ -342,7 +342,7 @@ app.post('/api/chat', async (req, res) => {
       // Call Anthropic API
       const response = await anthropic.messages.create({
         model: MODEL_STRING,
-        max_tokens: 10000,
+        max_tokens: 19000,
         system: SYSTEM_PROMPT,
         tools: [APPEND_TO_CANVAS_TOOL, REPLACE_CANVAS_TOOL, IMPORT_WEBPAGE_TOOL],
         messages: tempMessages.map(msg => ({
