@@ -380,10 +380,14 @@ app.post('/api/chat', async (req, res) => {
             const imageJS = `
 // Imported webpage: ${url}
 const ${imageId} = new Image();
-${imageId}.src = '${imageDataUri}';
 ${imageId}.onload = function() {
   ctx.drawImage(${imageId}, ${x}, ${y});
-};`;
+};
+${imageId}.src = '${imageDataUri}';
+// For server-side rendering: node-canvas loads synchronously, so draw immediately if complete
+if (${imageId}.complete) {
+  ctx.drawImage(${imageId}, ${x}, ${y});
+}`;
             
             currentCanvasJS += '\n' + imageJS;
             toolUses.push({ id: (toolUse as any).id, code: imageJS, type: 'import_webpage', url });
