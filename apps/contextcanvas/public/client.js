@@ -403,8 +403,11 @@ function handleStreamEvent(event, data) {
     
     switch (event) {
         case 'connected':
-            // Stream connection established, first bits received
+            // Stream connection established, update loading indicator
             console.log('Stream connected:', data.status);
+            if (loadingMsg) {
+                loadingMsg.textContent = '💭 Claude is thinking...';
+            }
             break;
             
         case 'tool_use':
