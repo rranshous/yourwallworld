@@ -346,6 +346,10 @@ async function sendMessage() {
                     toolMessage = '🔄 Canvas replaced with new content';
                 } else if (toolUse.type === 'append') {
                     toolMessage = '🔧 Added drawing to canvas';
+                } else if (toolUse.type === 'update_element' && toolUse.elementName) {
+                    toolMessage = `✏️ Updated element: ${toolUse.elementName}`;
+                } else if (toolUse.type === 'update_element_error' && toolUse.elementName) {
+                    toolMessage = `❌ Failed to update element: ${toolUse.elementName}`;
                 } else if (toolUse.type === 'import_webpage' && toolUse.url) {
                     toolMessage = `🌐 Imported webpage: ${toolUse.url}`;
                 } else if (toolUse.type === 'import_webpage_error' && toolUse.url) {
@@ -404,34 +408,40 @@ const CANVAS_TEMPLATES = {
         name: 'Blank Canvas',
         description: 'Empty white canvas for freeform creation',
         generateJS: (width, height) => `
+// ELEMENT: background
 // Clear and set background
 ctx.clearRect(0, 0, canvas.width, canvas.height);
 ctx.fillStyle = '#ffffff';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
+// END ELEMENT: background
 
+// ELEMENT: boundary
 // Canvas boundary (so you can see edges when zoomed out)
 ctx.strokeStyle = '#cccccc';
 ctx.lineWidth = 2;
 ctx.strokeRect(0, 0, canvas.width, canvas.height);
+// END ELEMENT: boundary
 `
     },
     brainstorm: {
         name: 'Brainstorming',
         description: 'Areas for ideas, connections, and themes',
         generateJS: (width, height) => `
+// ELEMENT: background
 // Clear and set background
 ctx.clearRect(0, 0, canvas.width, canvas.height);
 ctx.fillStyle = '#ffffff';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
+// END ELEMENT: background
 
+// ELEMENT: boundary
 // Canvas boundary
 ctx.strokeStyle = '#cccccc';
 ctx.lineWidth = 2;
 ctx.strokeRect(0, 0, canvas.width, canvas.height);
+// END ELEMENT: boundary
 
-// --- Brainstorming Template ---
-// Three sections: Ideas, Connections, Themes
-
+// ELEMENT: ideas_section
 // Ideas section (left)
 ctx.strokeStyle = '#4fc3f7';
 ctx.lineWidth = 2;
@@ -442,7 +452,9 @@ ctx.setLineDash([]);
 ctx.fillStyle = '#4fc3f7';
 ctx.font = 'bold 18px Arial';
 ctx.fillText('💡 IDEAS', 30, 50);
+// END ELEMENT: ideas_section
 
+// ELEMENT: connections_section
 // Connections section (middle)
 ctx.strokeStyle = '#9c27b0';
 ctx.lineWidth = 2;
@@ -453,7 +465,9 @@ ctx.setLineDash([]);
 ctx.fillStyle = '#9c27b0';
 ctx.font = 'bold 18px Arial';
 ctx.fillText('🔗 CONNECTIONS', 500, 50);
+// END ELEMENT: connections_section
 
+// ELEMENT: themes_section
 // Themes section (right)
 ctx.strokeStyle = '#ff9800';
 ctx.lineWidth = 2;
@@ -464,25 +478,30 @@ ctx.setLineDash([]);
 ctx.fillStyle = '#ff9800';
 ctx.font = 'bold 18px Arial';
 ctx.fillText('🎨 THEMES', 970, 50);
+// END ELEMENT: themes_section
 `
     },
     planning: {
         name: 'Planning',
         description: 'Timeline, tasks, and milestones sections',
         generateJS: (width, height) => `
+        description: 'Timeline, tasks, and milestones sections',
+        generateJS: (width, height) => `
+// ELEMENT: background
 // Clear and set background
 ctx.clearRect(0, 0, canvas.width, canvas.height);
 ctx.fillStyle = '#ffffff';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
+// END ELEMENT: background
 
+// ELEMENT: boundary
 // Canvas boundary
 ctx.strokeStyle = '#cccccc';
 ctx.lineWidth = 2;
 ctx.strokeRect(0, 0, canvas.width, canvas.height);
+// END ELEMENT: boundary
 
-// --- Planning Template ---
-// Timeline at top, Tasks below, Milestones at bottom
-
+// ELEMENT: timeline
 // Timeline section
 ctx.fillStyle = '#e3f2fd';
 ctx.fillRect(20, 20, canvas.width - 40, 150);
@@ -509,7 +528,9 @@ ctx.lineTo(canvas.width - 65, 127);
 ctx.closePath();
 ctx.fillStyle = '#2196f3';
 ctx.fill();
+// END ELEMENT: timeline
 
+// ELEMENT: tasks
 // Tasks section
 ctx.fillStyle = '#fff3e0';
 ctx.fillRect(20, 190, canvas.width - 40, 380);
@@ -520,7 +541,9 @@ ctx.strokeRect(20, 190, canvas.width - 40, 380);
 ctx.fillStyle = '#ff9800';
 ctx.font = 'bold 20px Arial';
 ctx.fillText('✓ TASKS', 30, 220);
+// END ELEMENT: tasks
 
+// ELEMENT: milestones
 // Milestones section
 ctx.fillStyle = '#e8f5e9';
 ctx.fillRect(20, 590, canvas.width - 40, 150);
@@ -531,6 +554,10 @@ ctx.strokeRect(20, 590, canvas.width - 40, 150);
 ctx.fillStyle = '#4caf50';
 ctx.font = 'bold 20px Arial';
 ctx.fillText('🎯 MILESTONES', 30, 620);
+// END ELEMENT: milestones
+`
+    }
+};
 `
     },
     conceptmap: {

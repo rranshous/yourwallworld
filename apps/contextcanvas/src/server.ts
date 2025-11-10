@@ -83,6 +83,30 @@ const IMPORT_WEBPAGE_TOOL = {
   }
 };
 
+// Tool definition for updating specific canvas elements
+const UPDATE_ELEMENT_TOOL = {
+  name: 'update_element',
+  description: 'Update a specific named element on the canvas without rewriting everything. Elements are marked with comments like // ELEMENT: name and // END ELEMENT: name. Use this for efficient editing of large canvases - only the specified element changes.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      element_name: {
+        type: 'string',
+        description: 'Name of the element to update (matches the name in // ELEMENT: name comment)'
+      },
+      javascript_code: {
+        type: 'string',
+        description: 'New JavaScript code for this element. Should NOT include the ELEMENT markers - just the code itself.'
+      },
+      create_if_missing: {
+        type: 'boolean',
+        description: 'If true and element doesn\'t exist, append it to the canvas. If false and element doesn\'t exist, return an error. Default: false.'
+      }
+    },
+    required: ['element_name', 'javascript_code']
+  }
+};
+
 // System prompt explaining the shared canvas concept
 const SYSTEM_PROMPT = `You are collaborating with a human in a shared communication space called "Context Canvas."
 
@@ -99,13 +123,21 @@ Both representations help you understand the canvas from different perspectives 
 
 The human can see the canvas visually. You can see both the visual representation and the code that creates it.
 
-You have three tools available:
+You have four tools available:
 
 1. **append_to_canvas**: Add new drawing commands to the existing canvas. Use this to layer new content on top of what's already there. The code you provide will be appended after all existing canvas code. This is the safe, additive way to build up the canvas.
 
 2. **replace_canvas**: Replace the entire canvas with new code. Use this to reorganize, refactor, or start fresh. This removes all existing content, so make sure to include everything you want in the new code.
 
-3. **import_webpage**: Import a screenshot of any webpage into the canvas. Provide a URL and optional position/viewport size. This lets you bring external web content into the shared space for reference and discussion.
+3. **update_element**: Update a specific named element on the canvas without rewriting everything else. Elements are marked with comments like // ELEMENT: timeline and // END ELEMENT: timeline. This is the MOST EFFICIENT way to make changes to large canvases. Use it whenever you're modifying an existing element rather than adding new content.
+
+4. **import_webpage**: Import a screenshot of any webpage into the canvas. Provide a URL and optional position/viewport size. This lets you bring external web content into the shared space for reference and discussion.
+
+**Best Practices for Elements**:
+- When creating new canvas sections, wrap them in ELEMENT markers with descriptive names
+- Use update_element to modify existing elements - much more token-efficient than replace_canvas
+- Element names should be descriptive: "timeline", "header", "fish_animation", "notes"
+- Old code without markers still works, but adding markers makes future edits easier
 
 This is a collaborative space - be aware of what's on the canvas and reference it naturally in conversation. When asked to draw or add content, use the appropriate tool.`;
 
@@ -201,6 +233,68 @@ async function renderCanvasOnServer(canvasJSCode: string, width: number, height:
       // If even error rendering fails, return empty string
       return '';
     }
+  }
+}
+
+// Parse and extract elements from canvas JS
+function parseElements(canvasJS: string): Map<string, {start: number, end: number, code: string}> {
+  const elements = new Map();
+  const lines = canvasJS.split('\n');
+  
+  let currentElement: string | null = null;
+  let startLine = -1;
+  let elementLines: string[] = [];
+  
+  lines.forEach((line, index) => {
+    const startMatch = line.match(/\/\/\s*ELEMENT:\s*(\w+)/i);
+    const endMatch = line.match(/\/\/\s*END\s+ELEMENT:\s*(\w+)/i);
+    
+    if (startMatch) {
+      currentElement = startMatch[1];
+      startLine = index;
+      elementLines = [];
+    } else if (endMatch && currentElement) {
+      const elementName = endMatch[1];
+      if (elementName.toLowerCase() === currentElement.toLowerCase()) {
+        elements.set(currentElement.toLowerCase(), {
+          start: startLine,
+          end: index,
+          code: elementLines.join('\n')
+        });
+        currentElement = null;
+      }
+    } else if (currentElement !== null && startLine !== -1) {
+      elementLines.push(line);
+    }
+  });
+  
+  return elements;
+}
+
+// Update a specific element in canvas JS
+function updateElement(canvasJS: string, elementName: string, newCode: string, createIfMissing: boolean = false): string {
+  const elements = parseElements(canvasJS);
+  const elementKey = elementName.toLowerCase();
+  
+  if (elements.has(elementKey)) {
+    // Element exists - replace it
+    const element = elements.get(elementKey)!;
+    const lines = canvasJS.split('\n');
+    
+    // Replace lines between start and end markers
+    const newLines = [
+      ...lines.slice(0, element.start + 1),  // Keep everything before element (including start marker)
+      newCode,                                 // New element code
+      ...lines.slice(element.end)              // Keep everything after element (including end marker)
+    ];
+    
+    return newLines.join('\n');
+  } else if (createIfMissing) {
+    // Element doesn't exist - append it with markers
+    return canvasJS + `\n// ELEMENT: ${elementName}\n${newCode}\n// END ELEMENT: ${elementName}\n`;
+  } else {
+    // Element doesn't exist and create_if_missing is false
+    throw new Error(`Element "${elementName}" not found on canvas`);
   }
 }
 
@@ -389,7 +483,7 @@ app.post('/api/chat', async (req, res) => {
         model: MODEL_STRING,
         max_tokens: 19000,
         system: SYSTEM_PROMPT,
-        tools: [APPEND_TO_CANVAS_TOOL, REPLACE_CANVAS_TOOL, IMPORT_WEBPAGE_TOOL],
+        tools: [APPEND_TO_CANVAS_TOOL, REPLACE_CANVAS_TOOL, UPDATE_ELEMENT_TOOL, IMPORT_WEBPAGE_TOOL],
         messages: tempMessages.map(msg => ({
           role: msg.role,
           content: msg.content
@@ -441,6 +535,21 @@ app.post('/api/chat', async (req, res) => {
           // Replace entire canvas
           currentCanvasJS = jsCode;
           toolUses.push({ id: (toolUse as any).id, code: jsCode, type: 'replace' });
+        } else if (toolName === 'update_element') {
+          const elementName = (toolUse as any).input.element_name;
+          const jsCode = (toolUse as any).input.javascript_code;
+          const createIfMissing = (toolUse as any).input.create_if_missing || false;
+          
+          console.log('Tool: update_element, ID:', (toolUse as any).id);
+          console.log('Element:', elementName, 'Create if missing:', createIfMissing);
+          
+          try {
+            currentCanvasJS = updateElement(currentCanvasJS, elementName, jsCode, createIfMissing);
+            toolUses.push({ id: (toolUse as any).id, code: jsCode, type: 'update_element', elementName });
+          } catch (error: any) {
+            console.error('Error updating element:', error.message);
+            toolUses.push({ id: (toolUse as any).id, type: 'update_element_error', elementName, error: error.message });
+          }
         } else if (toolName === 'import_webpage') {
           const url = (toolUse as any).input.url;
           const x = (toolUse as any).input.x || 20;
@@ -500,6 +609,9 @@ ctx.fillText('Error: ${error.message}', ${x}, ${y + 20});`;
           resultMessage = 'Drawing commands added to canvas successfully.';
         } else if (toolName === 'replace_canvas') {
           resultMessage = 'Canvas replaced with new content.';
+        } else if (toolName === 'update_element') {
+          const elementName = (toolUse as any).input.element_name;
+          resultMessage = `Element "${elementName}" updated successfully.`;
         } else if (toolName === 'import_webpage') {
           const url = (toolUse as any).input.url;
           resultMessage = `Webpage imported successfully from ${url}`;
