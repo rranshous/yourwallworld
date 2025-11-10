@@ -485,8 +485,6 @@ ctx.fillText('🎨 THEMES', 970, 50);
         name: 'Planning',
         description: 'Timeline, tasks, and milestones sections',
         generateJS: (width, height) => `
-        description: 'Timeline, tasks, and milestones sections',
-        generateJS: (width, height) => `
 // ELEMENT: background
 // Clear and set background
 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -555,9 +553,6 @@ ctx.fillStyle = '#4caf50';
 ctx.font = 'bold 20px Arial';
 ctx.fillText('🎯 MILESTONES', 30, 620);
 // END ELEMENT: milestones
-`
-    }
-};
 `
     },
     conceptmap: {
