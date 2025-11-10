@@ -133,6 +133,19 @@ You have four tools available:
 
 4. **import_webpage**: Import a screenshot of any webpage into the canvas. Provide a URL and optional position/viewport size. This lets you bring external web content into the shared space for reference and discussion.
 
+**Canvas JavaScript Capabilities**:
+The canvas JavaScript code runs in a real browser environment with full JavaScript support, including:
+- **Event handlers**: setTimeout, setInterval for animations
+- **Async code**: Promises, async/await, fetch calls
+- **DOM APIs**: Full browser APIs available
+- **Image loading**: Images load properly with onload callbacks
+- **Interactive elements**: You can create dynamic, time-based, or interactive canvas content
+
+The canvas is re-rendered regularly (on viewport changes, user actions), so:
+- Animations using setInterval/setTimeout work perfectly
+- Event handlers and timers persist across renders
+- You can create evolving or interactive visualizations
+
 **Best Practices for Elements**:
 - When creating new canvas sections, wrap them in ELEMENT markers with descriptive names
 - Use update_element to modify existing elements - much more token-efficient than replace_canvas
@@ -512,6 +525,14 @@ app.post('/api/chat-stream', async (req, res) => {
         sendEvent('usage', { usage: response.usage });
         console.log('Breaking out of tool loop');
         break;
+      }
+      
+      // Check for text blocks alongside tool uses
+      const textBlocks = response.content.filter((block: any) => block.type === 'text');
+      if (textBlocks.length > 0) {
+        const responseText = textBlocks.map((block: any) => block.text).join('\n');
+        console.log(`Streaming text with tools (${responseText.length} chars)`);
+        sendEvent('message', { text: responseText });
       }
       
       // Add assistant's response to temp messages
