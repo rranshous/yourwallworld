@@ -424,6 +424,11 @@ app.post('/api/chat-stream', async (req, res) => {
   // Send connected event immediately to keep connection alive
   sendEvent('connected', { status: 'streaming' });
   
+  // Start heartbeat to keep connection alive during long API calls
+  const heartbeatInterval = setInterval(() => {
+    sendEvent('heartbeat', { timestamp: Date.now() });
+  }, 10000); // Every 10 seconds
+  
   try {
     // Track updated canvas JS through tool uses
     let currentCanvasJS = canvasJS || '';
@@ -769,6 +774,9 @@ if (${imageId}.complete) {
     console.log('\n--- Tool Loop Complete ---');
     console.log('Final iteration:', iteration);
     
+    // Stop heartbeat
+    clearInterval(heartbeatInterval);
+    
     // Send completion event
     sendEvent('done', { 
       canvasJS: currentCanvasJS,
@@ -791,6 +799,9 @@ if (${imageId}.complete) {
   } catch (error: any) {
     console.error('\n!!! ERROR IN STREAMING CHAT !!!');
     console.error('Error:', error.message);
+    
+    // Stop heartbeat on error
+    clearInterval(heartbeatInterval);
     
     sendEvent('error', { 
       error: 'Failed to process message',

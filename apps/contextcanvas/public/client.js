@@ -364,10 +364,15 @@ async function sendMessage() {
                 try {
                     const { event, data } = JSON.parse(line);
                     
+                    // Handle connected event inline to access loadingMsg
+                    if (event === 'connected' && loadingMsg) {
+                        loadingMsg.textContent = '💭 Claude is thinking...';
+                    }
+                    
                     handleStreamEvent(event, data);
                     
-                    // Remove loading indicator on first real content (not connected event)
-                    if (!hasReceivedContent && event !== 'connected' && loadingMsg) {
+                    // Remove loading indicator on first real content (not connected/heartbeat)
+                    if (!hasReceivedContent && event !== 'connected' && event !== 'heartbeat' && loadingMsg) {
                         loadingMsg.remove();
                         loadingMsg = null;
                         hasReceivedContent = true;
@@ -403,11 +408,13 @@ function handleStreamEvent(event, data) {
     
     switch (event) {
         case 'connected':
-            // Stream connection established, update loading indicator
+            // Handled inline where loadingMsg is accessible
             console.log('Stream connected:', data.status);
-            if (loadingMsg) {
-                loadingMsg.textContent = '💭 Claude is thinking...';
-            }
+            break;
+            
+        case 'heartbeat':
+            // Keep-alive event, no action needed
+            console.log('Heartbeat received');
             break;
             
         case 'tool_use':
