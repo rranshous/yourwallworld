@@ -658,10 +658,12 @@ app.post('/api/chat-stream', async (req, res) => {
             const imageJS = `
 // Imported webpage: ${url}
 const ${imageId} = new Image();
-${imageId}.onload = function() {
-  ctx.drawImage(${imageId}, ${x}, ${y});
-};
 ${imageId}.src = '${imageDataUri}';
+if (${imageId}.complete) {
+  ctx.drawImage(${imageId}, ${x}, ${y});
+} else {
+  ${imageId}.onload = () => { ctx.drawImage(${imageId}, ${x}, ${y}); };
+}
 `;
             
             currentCanvasJS += '\n' + imageJS;

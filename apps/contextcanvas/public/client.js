@@ -1021,6 +1021,23 @@ function renderCanvas() {
     
     // Restore transform
     ctx.restore();
+    
+    // Re-render after a short delay to catch any image onload callbacks
+    // This ensures images that weren't immediately complete get rendered with correct transforms
+    setTimeout(() => {
+        if (!ctx) return;
+        ctx.save();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+        ctx.translate(viewport.offsetX, viewport.offsetY);
+        ctx.scale(viewport.scale, viewport.scale);
+        try {
+            eval(canvasJS);
+        } catch (error) {
+            // Ignore errors on re-render
+        }
+        ctx.restore();
+    }, 100);
 }
 
 function updateDebugPanel() {
