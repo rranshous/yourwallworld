@@ -87,11 +87,20 @@ When the AI draws, it uses the `update_canvas` tool to generate similar code.
 
 ### AI Context
 Every message to the AI includes:
-- Canvas screenshot (base64 PNG)
-- Complete canvas JavaScript code
-- User's text message
+- Full canvas screenshot (base64 PNG)
+- Viewport screenshot (what user sees)
+- Complete canvas JavaScript code (with data URIs redacted for token efficiency)
+- Canvas metadata (name, template, dimensions)
+- Viewport state (pan/zoom)
 
 This gives the AI full visual and structural understanding of the shared space.
+
+### Multiple Tools
+The AI has access to several tools:
+- **append_to_canvas**: Add new drawing commands to existing canvas
+- **replace_canvas**: Completely rewrite canvas (for reorganization/fixes)
+- **update_element**: Update specific named elements efficiently
+- **import_webpage**: Screenshot and import any URL to canvas
 
 ### Tool Use Loop
 When AI wants to draw:
@@ -162,26 +171,36 @@ window.__contextCanvas.updateDebug()
 
 ## Current Status
 
-✅ **All 6 Core Milestones Complete!**
+✅ **Core Foundation Complete + Major Enhancements!**
 
-1. ✅ Foundation - TypeScript server infrastructure
-2. ✅ Simple Chat - Full chat UI with Anthropic integration
-3. ✅ Canvas - HTML5 Canvas with JS code as source of truth
-4. ✅ Canvas as Context - AI sees screenshot + code
-5. ✅ Simple Draw Tool - Mouse-based drawing
-6. ✅ Enable Model to Draw - Bidirectional collaboration
+**Implemented Features:**
+- ✅ Bidirectional drawing (human + AI)
+- ✅ Multi-canvas management (create, switch, rename, delete)
+- ✅ Canvas templates (blank, brainstorming, planning, concept map)
+- ✅ Webpage import tool (screenshot and import any URL)
+- ✅ Browser-based rendering (Playwright for full JS support)
+- ✅ Replace canvas tool (AI can rewrite entire canvas)
+- ✅ Element-based editing (update specific sections efficiently)
+- ✅ Pan and zoom viewport controls
+- ✅ Canvas resizing with constraints
+- ✅ Debug panel with JS viewer
 
-**BONUS**: Server-side canvas rendering for immediate AI visual feedback
+**Recent Milestones (Nov 2025):**
+- **Finer Canvas Interaction (67% complete)**: Replace tool, element editing, user rename, browser rendering
+- **Context Import Tools (planned)**: File upload, export, webcam, clipboard
+
+See `docs/completed/` for full implementation details and `docs/ipi-context-import-tools.md` for roadmap.
 
 ## Future Enhancements
 
-See `docs/enhancements.md` for planned features:
-- Pan and zoom
-- Persistence (save/load canvas)
-- Communication frames (starter templates)
-- Undo/redo
-- Color picker and drawing tools
-- Multi-user collaboration
+**High Priority:**
+- SSE streaming for real-time progress updates
+- Context import tools (file upload, webcam, export)
+- Animation isolation for interactive canvases
+
+**See Also:**
+- `docs/future-enhancements.md` - SSE streaming and animation isolation
+- `docs/ipi-context-import-tools.md` - File I/O and media capture tools
 
 ## Credits
 

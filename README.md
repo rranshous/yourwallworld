@@ -16,6 +16,38 @@ The goal is to create a continuous, observable loop where Claude can maintain pr
 
 This repo contains multiple experimental apps as we iterate on the concept:
 
+### 🎨 [Context Canvas](./apps/contextcanvas)
+
+**Status**: ✅ Core Complete + Active Development
+
+A shared visual workspace where humans and AI collaborate naturally. The canvas is the meeting place - not the AI's embodiment, but the space where both participants build shared understanding.
+
+**Key Features:**
+- Bidirectional drawing (human + AI)
+- Multi-canvas management (create, switch, rename, delete)
+- Canvas templates (blank, brainstorming, planning, concept map)
+- Webpage import (screenshot and bring any URL to canvas)
+- Browser-based rendering (full JavaScript support)
+- Multiple editing modes (append, replace, element-based)
+- Pan and zoom viewport controls
+- Real-time server-side rendering with visual feedback
+
+**Recent Milestones:**
+- ✅ Replace canvas tool for AI iteration
+- ✅ Element-based editing for token efficiency
+- ✅ User canvas rename functionality
+- ✅ Browser rendering via Playwright
+- 📋 Planned: File upload, webcam capture, export tools
+
+**What We Learned:**
+- Shared workspace model feels more natural than embodiment
+- Dual representation (visual + code) gives AI rich context
+- Element markers enable efficient iterative editing
+- Server-side rendering enables immediate visual feedback
+- Multi-canvas management supports different collaboration modes
+
+[Explore Context Canvas →](./apps/contextcanvas)
+
 ### 🎨 [Avatar Builder](./apps/avatar-builder)
 
 **Status**: ✅ Complete (v1)
