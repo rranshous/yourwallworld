@@ -421,6 +421,9 @@ app.post('/api/chat-stream', async (req, res) => {
     res.write(JSON.stringify(eventData) + '\n');
   };
   
+  // Send connected event immediately to keep connection alive
+  sendEvent('connected', { status: 'streaming' });
+  
   try {
     // Track updated canvas JS through tool uses
     let currentCanvasJS = canvasJS || '';

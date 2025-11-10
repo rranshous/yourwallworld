@@ -400,9 +400,13 @@ async function sendMessage() {
 }
 
 function handleStreamEvent(event, data) {
-    console.log('Stream event:', event, data);
     
     switch (event) {
+        case 'connected':
+            // Stream connection established, first bits received
+            console.log('Stream connected:', data.status);
+            break;
+            
         case 'tool_use':
             // Show tool use notification
             let toolMessage = '🔧 Using tool...';
