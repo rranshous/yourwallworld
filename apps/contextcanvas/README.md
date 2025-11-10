@@ -148,9 +148,9 @@ npm run build
 ## API Endpoints
 
 - `GET /api/health` - Health check
-- `POST /api/chat` - Send message with canvas context
-  - Request: `{ message, canvasScreenshot, canvasJS, canvasDimensions }`
-  - Response: `{ response, canvasJS, toolUses }`
+- `POST /api/chat-stream` - Send message with canvas context (streaming NDJSON responses)
+  - Request: `{ message, fullCanvasScreenshot, viewportScreenshot, canvasJS, canvasName, canvasTemplate, canvasDimensions, viewport }`
+  - Response: Newline-delimited JSON events: `tool_use`, `canvas_update`, `message`, `usage`, `done`, `error`
 
 ## Debug API
 

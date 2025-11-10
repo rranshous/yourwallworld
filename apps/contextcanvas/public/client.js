@@ -363,7 +363,6 @@ async function sendMessage() {
                 
                 try {
                     const { event, data } = JSON.parse(line);
-                    console.log('Stream event:', event, data);
                     
                     // Remove loading indicator on first real content
                     if (!hasReceivedContent && loadingMsg) {
@@ -421,14 +420,8 @@ function handleStreamEvent(event, data) {
             
         case 'canvas_update':
             // Update canvas immediately
-            console.log('Canvas update received, JS length:', data.canvasJS?.length);
-            console.log('Current canvasJS length:', canvasJS?.length);
-            console.log('JS changed:', data.canvasJS !== canvasJS);
             if (data.canvasJS && data.canvasJS !== canvasJS) {
-                console.log('Updating canvas JS...');
                 setCanvasJS(data.canvasJS);
-            } else {
-                console.log('Skipping canvas update (no change or no data)');
             }
             break;
             
