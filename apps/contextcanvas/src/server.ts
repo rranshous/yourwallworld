@@ -701,6 +701,403 @@ ctx.fillText('Error: ${error.message}', ${x}, ${y + 20});`;
   }
 });
 
+// SSE Streaming Chat endpoint
+app.post('/api/chat-stream', async (req, res) => {
+  const { message, fullCanvasScreenshot, viewportScreenshot, canvasJS, canvasName, canvasTemplate, canvasDimensions, viewport } = req.body;
+  
+  console.log('\n=== NEW STREAMING CHAT REQUEST ===');
+  console.log('Message:', message);
+  console.log('Canvas name:', canvasName || 'Unknown');
+  
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+  
+  // Set up SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  
+  // Helper to send streaming JSON events
+  const sendEvent = (event: string, data: any) => {
+    const logData = {...data};
+    if (logData.canvasJS) logData.canvasJS = `[${logData.canvasJS.length} chars]`;
+    if (logData.screenshot) logData.screenshot = `[${logData.screenshot.length} chars]`;
+    console.log(`[STREAM] Sending event: ${event}`, logData);
+    
+    // Send as newline-delimited JSON (much simpler than SSE format)
+    const eventData = { event, data };
+    res.write(JSON.stringify(eventData) + '\n');
+  };
+  
+  try {
+    // Track updated canvas JS through tool uses
+    let currentCanvasJS = canvasJS || '';
+    let currentFullScreenshot = fullCanvasScreenshot;
+    let currentViewportScreenshot = viewportScreenshot;
+    const canvasWidth = canvasDimensions?.width || 1600;
+    const canvasHeight = canvasDimensions?.height || 900;
+    
+    // Build initial user message content with canvas context
+    const userContent: any[] = [];
+    
+    // Add full canvas screenshot if available
+    if (currentFullScreenshot && currentFullScreenshot.startsWith('data:image')) {
+      const base64Data = currentFullScreenshot.split(',')[1];
+      userContent.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: base64Data
+        }
+      });
+    }
+    
+    // Add viewport screenshot if available
+    if (currentViewportScreenshot && 
+        currentViewportScreenshot.startsWith('data:image') &&
+        viewport && (viewport.scale !== 1.0 || viewport.offsetX !== 0 || viewport.offsetY !== 0)) {
+      const base64Data = currentViewportScreenshot.split(',')[1];
+      userContent.push({
+        type: 'text',
+        text: `User's current focus area (zoomed/panned view):`
+      });
+      userContent.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: base64Data
+        }
+      });
+    }
+    
+    // Add canvas context
+    const redactedCanvasJS = redactImageDataFromJS(currentCanvasJS);
+    userContent.push({
+      type: 'text',
+      text: `Canvas: "${canvasName}" (${canvasTemplate})\nDimensions: ${canvasWidth}×${canvasHeight}\n\nCanvas JavaScript:\n\`\`\`javascript\n${redactedCanvasJS}\n\`\`\`\n\nUser message: ${message}`
+    });
+    
+    // Add initial user message to conversation history
+    conversationHistory.push({
+      role: 'user',
+      content: userContent
+    });
+    
+    // Limit conversation history
+    if (conversationHistory.length > 20) {
+      conversationHistory = conversationHistory.slice(-20);
+    }
+    
+    // Tool loop
+    const tempMessages: any[] = [];
+    let finalResponse: any = null;
+    const maxIterations = 10;
+    let iteration = 0;
+    
+    while (iteration < maxIterations) {
+      iteration++;
+      console.log(`\n--- Tool Loop Iteration ${iteration} ---`);
+      
+      // Call Claude API
+      const response = await anthropic.messages.create({
+        model: MODEL_STRING,
+        max_tokens: 19000,
+        system: SYSTEM_PROMPT,
+        messages: [...conversationHistory, ...tempMessages],
+        tools: [APPEND_TO_CANVAS_TOOL, REPLACE_CANVAS_TOOL, UPDATE_ELEMENT_TOOL, IMPORT_WEBPAGE_TOOL].map(tool => ({
+          name: tool.name,
+          description: tool.description,
+          input_schema: tool.input_schema
+        }))
+      });
+      
+      finalResponse = response;
+      
+      // Check for tool_use blocks
+      const toolUseBlocks = response.content.filter((block: any) => block.type === 'tool_use');
+      
+      console.log(`Tool use blocks found: ${toolUseBlocks.length}`);
+      
+      if (toolUseBlocks.length === 0) {
+        // No more tool uses - send final text response
+        console.log('No tool uses - sending final response');
+        const textBlocks = response.content.filter((block: any) => block.type === 'text');
+        const responseText = textBlocks.map((block: any) => block.text).join('\n');
+        
+        console.log(`Response text length: ${responseText.length}`);
+        if (responseText) {
+          sendEvent('message', { text: responseText });
+        }
+        sendEvent('usage', { usage: response.usage });
+        console.log('Breaking out of tool loop');
+        break;
+      }
+      
+      // Add assistant's response to temp messages
+      tempMessages.push({
+        role: 'assistant',
+        content: response.content
+      });
+      
+      // Process tool uses and stream them
+      console.log(`Processing ${toolUseBlocks.length} tool uses`);
+      const toolResults: any[] = [];
+      
+      for (const toolUse of toolUseBlocks) {
+        const toolName = (toolUse as any).name;
+        const toolId = (toolUse as any).id;
+        
+        if (toolName === 'append_to_canvas') {
+          const jsCode = (toolUse as any).input.javascript_code;
+          console.log('Tool: append_to_canvas');
+          
+          currentCanvasJS += '\n// Drawn by AI\n' + jsCode;
+          
+          // Stream tool use event
+          sendEvent('tool_use', { 
+            type: 'append', 
+            toolId,
+            canvasJS: currentCanvasJS 
+          });
+          
+          // Render canvas
+          try {
+            currentFullScreenshot = await renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
+            
+            // Stream canvas update
+            sendEvent('canvas_update', {
+              canvasJS: currentCanvasJS,
+              screenshot: currentFullScreenshot
+            });
+          } catch (error: any) {
+            console.error('Canvas render error:', error.message);
+          }
+          
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: toolId,
+            content: 'Drawing commands added to canvas successfully.'
+          });
+          
+        } else if (toolName === 'replace_canvas') {
+          const jsCode = (toolUse as any).input.javascript_code;
+          console.log('Tool: replace_canvas');
+          
+          currentCanvasJS = jsCode;
+          
+          sendEvent('tool_use', { 
+            type: 'replace', 
+            toolId,
+            canvasJS: currentCanvasJS 
+          });
+          
+          try {
+            currentFullScreenshot = await renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
+            
+            sendEvent('canvas_update', {
+              canvasJS: currentCanvasJS,
+              screenshot: currentFullScreenshot
+            });
+          } catch (error: any) {
+            console.error('Canvas render error:', error.message);
+          }
+          
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: toolId,
+            content: 'Canvas replaced with new content.'
+          });
+          
+        } else if (toolName === 'update_element') {
+          const elementName = (toolUse as any).input.element_name;
+          const jsCode = (toolUse as any).input.javascript_code;
+          const createIfMissing = (toolUse as any).input.create_if_missing || false;
+          
+          console.log('Tool: update_element, Element:', elementName);
+          
+          try {
+            currentCanvasJS = updateElement(currentCanvasJS, elementName, jsCode, createIfMissing);
+            
+            sendEvent('tool_use', { 
+              type: 'update_element', 
+              toolId,
+              elementName,
+              canvasJS: currentCanvasJS 
+            });
+            
+            currentFullScreenshot = await renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
+            
+            sendEvent('canvas_update', {
+              canvasJS: currentCanvasJS,
+              screenshot: currentFullScreenshot
+            });
+            
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: toolId,
+              content: `Element "${elementName}" updated successfully.`
+            });
+          } catch (error: any) {
+            console.error('Error updating element:', error.message);
+            
+            sendEvent('tool_error', { 
+              type: 'update_element_error',
+              toolId,
+              elementName, 
+              error: error.message 
+            });
+            
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: toolId,
+              content: `Error updating element: ${error.message}`,
+              is_error: true
+            });
+          }
+          
+        } else if (toolName === 'import_webpage') {
+          const url = (toolUse as any).input.url;
+          const x = (toolUse as any).input.x || 20;
+          const y = (toolUse as any).input.y || 20;
+          const viewportWidth = (toolUse as any).input.viewport_width || 1200;
+          const viewportHeight = (toolUse as any).input.viewport_height || 900;
+          
+          console.log('Tool: import_webpage, URL:', url);
+          
+          try {
+            sendEvent('tool_use', { 
+              type: 'import_webpage', 
+              toolId,
+              url 
+            });
+            
+            const imageDataUri = await screenshotWebpage(url, viewportWidth, viewportHeight);
+            const imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            
+            const imageJS = `
+// Imported webpage: ${url}
+const ${imageId} = new Image();
+${imageId}.onload = function() {
+  ctx.drawImage(${imageId}, ${x}, ${y});
+};
+${imageId}.src = '${imageDataUri}';
+`;
+            
+            currentCanvasJS += '\n' + imageJS;
+            
+            currentFullScreenshot = await renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
+            
+            sendEvent('canvas_update', {
+              canvasJS: currentCanvasJS,
+              screenshot: currentFullScreenshot
+            });
+            
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: toolId,
+              content: `Webpage imported successfully from ${url}`
+            });
+          } catch (error: any) {
+            console.error('Error importing webpage:', error.message);
+            
+            sendEvent('tool_error', { 
+              type: 'import_webpage_error',
+              toolId,
+              url,
+              error: error.message 
+            });
+            
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: toolId,
+              content: `Error importing webpage: ${error.message}`,
+              is_error: true
+            });
+          }
+        }
+      }
+      
+      // Re-capture canvas context for next iteration
+      try {
+        currentFullScreenshot = await renderCanvasOnServer(currentCanvasJS, canvasWidth, canvasHeight);
+      } catch (error: any) {
+        console.error('Canvas render error:', error.message);
+      }
+      
+      const redactedCanvasJSForClaude = redactImageDataFromJS(currentCanvasJS);
+      
+      // Build tool result message
+      const toolResultContent: any[] = [];
+      
+      for (const toolResult of toolResults) {
+        toolResultContent.push(toolResult);
+      }
+      
+      // Add updated canvas screenshot
+      if (currentFullScreenshot && currentFullScreenshot.startsWith('data:image')) {
+        const base64Data = currentFullScreenshot.split(',')[1];
+        toolResultContent.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: 'image/png',
+            data: base64Data
+          }
+        });
+      }
+      
+      // Add updated canvas JS
+      toolResultContent.push({
+        type: 'text',
+        text: `Updated canvas JavaScript:\n\`\`\`javascript\n${redactedCanvasJSForClaude}\n\`\`\``
+      });
+      
+      // Add tool results to temp messages
+      tempMessages.push({
+        role: 'user',
+        content: toolResultContent
+      });
+    }
+    
+    console.log('\n--- Tool Loop Complete ---');
+    console.log('Final iteration:', iteration);
+    
+    // Send completion event
+    sendEvent('done', { 
+      canvasJS: currentCanvasJS,
+      usage: finalResponse?.usage 
+    });
+    
+    console.log('Stream complete, closing connection');
+    
+    // Update conversation history
+    if (finalResponse) {
+      conversationHistory.push({
+        role: 'assistant',
+        content: finalResponse.content
+      });
+    }
+    
+    res.end();
+    console.log('=== STREAMING CHAT REQUEST COMPLETE ===\n');
+    
+  } catch (error: any) {
+    console.error('\n!!! ERROR IN STREAMING CHAT !!!');
+    console.error('Error:', error.message);
+    
+    sendEvent('error', { 
+      error: 'Failed to process message',
+      details: error.message 
+    });
+    
+    res.end();
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Context Canvas server running on http://localhost:${PORT}`);
 });

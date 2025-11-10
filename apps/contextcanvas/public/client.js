@@ -282,7 +282,7 @@ async function sendMessage() {
     messageInput.disabled = true;
     
     // Add loading indicator
-    const loadingMsg = addMessage('assistant', '...');
+    let loadingMsg = addMessage('assistant', '...');
     
     try {
         // Capture canvas screenshots (both full and viewport)
@@ -319,7 +319,8 @@ async function sendMessage() {
             ? CANVAS_TEMPLATES[canvasTemplate].name 
             : 'Custom';
         
-        const response = await fetch('/api/chat', {
+        // Use SSE streaming endpoint
+        const response = await fetch('/api/chat-stream', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -340,53 +341,55 @@ async function sendMessage() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const data = await response.json();
+        // Read stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
         
-        // Remove loading indicator
-        loadingMsg.remove();
+        let buffer = '';
+        let hasReceivedContent = false;
         
-        // Update context counter if usage data is available
-        if (data.usage) {
-            updateContextCounter(data.usage);
-        }
-        
-        // If there were tool uses, show them in the chat
-        if (data.toolUses && data.toolUses.length > 0) {
-            for (const toolUse of data.toolUses) {
-                let toolMessage = '🔧 Used tool';
-                if (toolUse.type === 'replace') {
-                    toolMessage = '🔄 Canvas replaced with new content';
-                } else if (toolUse.type === 'append') {
-                    toolMessage = '🔧 Added drawing to canvas';
-                } else if (toolUse.type === 'update_element' && toolUse.elementName) {
-                    toolMessage = `✏️ Updated element: ${toolUse.elementName}`;
-                } else if (toolUse.type === 'update_element_error' && toolUse.elementName) {
-                    toolMessage = `❌ Failed to update element: ${toolUse.elementName}`;
-                } else if (toolUse.type === 'import_webpage' && toolUse.url) {
-                    toolMessage = `🌐 Imported webpage: ${toolUse.url}`;
-                } else if (toolUse.type === 'import_webpage_error' && toolUse.url) {
-                    toolMessage = `❌ Failed to import: ${toolUse.url}`;
-                } else {
-                    toolMessage = '🔧 Used tool';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Parse newline-delimited JSON
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // Keep incomplete line in buffer
+            
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                
+                try {
+                    const { event, data } = JSON.parse(line);
+                    console.log('Stream event:', event, data);
+                    
+                    // Remove loading indicator on first real content
+                    if (!hasReceivedContent && loadingMsg) {
+                        loadingMsg.remove();
+                        loadingMsg = null;
+                        hasReceivedContent = true;
+                    }
+                    
+                    handleStreamEvent(event, data);
+                } catch (err) {
+                    console.error('Error parsing stream data:', err, line);
                 }
-                addMessage('assistant', toolMessage);
             }
         }
         
-        // Update canvas with new JS if provided
-        if (data.canvasJS && data.canvasJS !== canvasJS) {
-            setCanvasJS(data.canvasJS);
-        }
-        
-        // Add assistant response to UI
-        if (data.response) {
-            addMessage('assistant', data.response);
+        // Clean up loading indicator if still there
+        if (loadingMsg) {
+            loadingMsg.remove();
         }
         
     } catch (error) {
         console.error('Error sending message:', error);
         // Remove loading indicator
-        loadingMsg.remove();
+        if (loadingMsg) {
+            loadingMsg.remove();
+        }
         addMessage('assistant', 'Sorry, there was an error processing your message.');
     } finally {
         // Re-enable input
@@ -394,6 +397,84 @@ async function sendMessage() {
         sendButton.disabled = false;
         messageInput.disabled = false;
         messageInput.focus();
+    }
+}
+
+function handleStreamEvent(event, data) {
+    console.log('Stream event:', event, data);
+    
+    switch (event) {
+        case 'tool_use':
+            // Show tool use notification
+            let toolMessage = '🔧 Using tool...';
+            if (data.type === 'append') {
+                toolMessage = '� Adding to canvas...';
+            } else if (data.type === 'replace') {
+                toolMessage = '� Replacing canvas...';
+            } else if (data.type === 'update_element' && data.elementName) {
+                toolMessage = `✏️ Updating element: ${data.elementName}...`;
+            } else if (data.type === 'import_webpage' && data.url) {
+                toolMessage = `🌐 Importing webpage: ${data.url}...`;
+            }
+            addMessage('system', toolMessage);
+            break;
+            
+        case 'canvas_update':
+            // Update canvas immediately
+            console.log('Canvas update received, JS length:', data.canvasJS?.length);
+            console.log('Current canvasJS length:', canvasJS?.length);
+            console.log('JS changed:', data.canvasJS !== canvasJS);
+            if (data.canvasJS && data.canvasJS !== canvasJS) {
+                console.log('Updating canvas JS...');
+                setCanvasJS(data.canvasJS);
+            } else {
+                console.log('Skipping canvas update (no change or no data)');
+            }
+            break;
+            
+        case 'message':
+            // Show Claude's text response
+            if (data.text) {
+                addMessage('assistant', data.text);
+            }
+            break;
+            
+        case 'usage':
+            // Update token counter
+            if (data.usage) {
+                updateContextCounter(data.usage);
+            }
+            break;
+            
+        case 'tool_error':
+            // Show error message
+            let errorMsg = '❌ Tool error';
+            if (data.type === 'update_element_error' && data.elementName) {
+                errorMsg = `❌ Failed to update element: ${data.elementName}`;
+            } else if (data.type === 'import_webpage_error' && data.url) {
+                errorMsg = `❌ Failed to import: ${data.url}`;
+            }
+            if (data.error) {
+                errorMsg += ` - ${data.error}`;
+            }
+            addMessage('system', errorMsg);
+            break;
+            
+        case 'error':
+            // Show fatal error
+            addMessage('system', `❌ Error: ${data.details || data.error || 'Unknown error'}`);
+            break;
+            
+        case 'done':
+            // Stream complete
+            console.log('Stream complete');
+            if (data.usage) {
+                updateContextCounter(data.usage);
+            }
+            break;
+            
+        default:
+            console.log('Unknown event type:', event);
     }
 }
 
