@@ -171,7 +171,7 @@ window.__contextCanvas.updateDebug()
 
 ## Current Status
 
-✅ **Core Foundation Complete + Major Enhancements!**
+✅ **Core Foundation Complete + Active Development**
 
 **Implemented Features:**
 - ✅ Bidirectional drawing (human + AI)
@@ -186,10 +186,10 @@ window.__contextCanvas.updateDebug()
 - ✅ Debug panel with JS viewer
 
 **Recent Milestones (Nov 2025):**
-- **Finer Canvas Interaction (67% complete)**: Replace tool, element editing, user rename, browser rendering
-- **Context Import Tools (planned)**: File upload, export, webcam, clipboard
+- **Finer Canvas Interaction**: Replace tool, element editing, user rename, browser rendering
+- **Context Import Tools (exploring)**: File upload, webcam capture, export possibilities
 
-See `docs/completed/` for full implementation details and `docs/ipi-context-import-tools.md` for roadmap.
+See `docs/completed/` for implementation details and `docs/ipi-context-import-tools.md` for ideas in progress.
 
 ## Future Enhancements
 
