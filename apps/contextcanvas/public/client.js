@@ -202,6 +202,18 @@ deleteCanvasButton.addEventListener('click', () => {
     }
 });
 
+// Rename canvas button
+const renameCanvasButton = document.getElementById('renameCanvasButton');
+renameCanvasButton.addEventListener('click', () => {
+    const currentCanvas = getCurrentCanvas();
+    if (!currentCanvas) return;
+    
+    const newName = prompt('Enter new canvas name:', currentCanvas.name);
+    if (newName && newName.trim() && newName.trim() !== currentCanvas.name) {
+        renameCanvas(currentCanvasId, newName.trim());
+    }
+});
+
 // Close modal on background click
 resizeModal.addEventListener('click', (e) => {
     if (e.target === resizeModal) {
@@ -816,6 +828,17 @@ function deleteCanvas(id) {
     const canvases = loadCanvases();
     delete canvases[id];
     saveCanvases(canvases);
+}
+
+function renameCanvas(id, newName) {
+    const canvases = loadCanvases();
+    if (canvases[id]) {
+        canvases[id].name = newName;
+        canvases[id].modified = Date.now();
+        saveCanvases(canvases);
+        updateCanvasPicker();
+        console.log('Canvas renamed to:', newName);
+    }
 }
 
 function getCurrentCanvas() {
