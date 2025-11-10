@@ -364,14 +364,14 @@ async function sendMessage() {
                 try {
                     const { event, data } = JSON.parse(line);
                     
-                    // Remove loading indicator on first real content
-                    if (!hasReceivedContent && loadingMsg) {
+                    handleStreamEvent(event, data);
+                    
+                    // Remove loading indicator on first real content (not connected event)
+                    if (!hasReceivedContent && event !== 'connected' && loadingMsg) {
                         loadingMsg.remove();
                         loadingMsg = null;
                         hasReceivedContent = true;
                     }
-                    
-                    handleStreamEvent(event, data);
                 } catch (err) {
                     console.error('Error parsing stream data:', err, line);
                 }
